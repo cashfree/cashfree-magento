@@ -11,6 +11,12 @@
       "cashfree", "magento", "payments", "india",
       "payment gateway", "wallets", "netbanking"
     ],
+    "repositories": [
+    {
+        "type": "composer",
+        "url": "http://packages.magento.com/"
+    }
+    ],
     "suggest": {
       "magento/module-checkout-agreements": "100.0.*"
     },
