@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <payment>
+            <cfcheckout>
+                <model>Cashfree\Cfcheckout\Model\Cfcheckout</model>
+                <title>Cashfree</title>
+                <prod_url>https://www.cashfree.com/checkout/post/submit</prod_url>
+                <test_url>https://test.cashfree.com/billpay/checkout/post/submit</test_url>
+                <redirect_url>cfcheckout/standard/redirect</redirect_url>
+                <return_url>cfcheckout/standard/response</return_url>
+                <notify_url>cfcheckout/standard/notify</notify_url>
+                <app_id backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+                <secret_key backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+            </cfcheckout>
+        </payment>
+    </default>
+</config>
