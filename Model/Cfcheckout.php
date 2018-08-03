@@ -100,6 +100,8 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
         $order = $this->checkoutSession->getLastRealOrder();
         $billing_address = $order->getBillingAddress();
 
+        $order->setCanSendNewEmailFlag(false);
+
         $params = array();
         $params["appId"] = $this->getConfigData("app_id");
         $params["orderId"] = $order->getEntityId();
@@ -171,6 +173,7 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
         $payment->setIsTransactionClosed(0);
         $payment->place();
         $order->setStatus('processing');
+        $order->sendNewOrderEmail();
         $order->save();
     }
 
