@@ -104,7 +104,7 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
 
         $params = array();
         $params["appId"] = $this->getConfigData("app_id");
-        $params["orderId"] = $order->getEntityId();
+        $params["orderId"] = $order->getIncrementId();
         $params["orderAmount"] = round($order->getGrandTotal(), 2);
         $params["orderCurrency"] = $order->getOrderCurrencyCode();
         $params["customerName"] = $billing_address->getFirstName(). " ". $billing_address->getLastName();

@@ -121,7 +121,7 @@ abstract class CfAbstract extends \Magento\Framework\App\Action\Action
     {
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $order = $objectManager->get('Magento\Sales\Model\Order');
-        $order_info = $order->load($order_id);
+        $order_info = $order->loadByIncrementId($order_id);
         return $order_info;
     }
 
