@@ -12,7 +12,12 @@ class Cfcheckout extends AbstractHelper
     protected $quote;
     protected $quoteManagement;
     protected $orderSender;
-
+    
+    /**
+     * Initialise helper function for checkout
+     *
+     * @return void
+     */
     public function __construct(
         Context $context,
         \Magento\Checkout\Model\Session $session,
@@ -24,7 +29,13 @@ class Cfcheckout extends AbstractHelper
         $this->quoteManagement = $quoteManagement;
         parent::__construct($context);
     }
-
+    
+    /**
+     * Cancel current order
+     *
+     * @param  mixed $comment
+     * @return void
+     */
     public function cancelCurrentOrder($comment)
     {
         $order = $this->session->getLastRealOrder();
@@ -34,12 +45,24 @@ class Cfcheckout extends AbstractHelper
         }
         return false;
     }
-
+    
+    /**
+     * Restore quote
+     *
+     * @return void
+     */
     public function restoreQuote()
     {
         return $this->session->restoreQuote();
     }
-
+    
+    /**
+     * getUrl
+     *
+     * @param  mixed $route
+     * @param  mixed $params
+     * @return void
+     */
     public function getUrl($route, $params = [])
     {
         return $this->_getUrl($route, $params);

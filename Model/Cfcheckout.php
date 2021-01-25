@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Cashfree\Cfcheckout\Model;
 
 use Magento\Sales\Api\Data\TransactionInterface;
@@ -18,6 +17,10 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
      */
     protected $_urlBuilder;
     
+    /**
+     *
+     * @var \Magento\Checkout\Model\Session
+     */
     private $checkoutSession;
 
     /**
@@ -34,6 +37,7 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
      * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param array $data
      */
+
       public function __construct(
         \Magento\Framework\Model\Context $context,
         \Magento\Framework\Registry $registry,
@@ -43,15 +47,17 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Payment\Model\Method\Logger $logger,
         \Cashfree\Cfcheckout\Helper\Cfcheckout $helper,
-        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
         \Magento\Framework\HTTP\ZendClientFactory $httpClientFactory,
-        \Magento\Checkout\Model\Session $checkoutSession      
+        \Magento\Checkout\Model\Session $checkoutSession,
+        \Magento\Sales\Model\Service\InvoiceService $invoiceService,
+        \Magento\Framework\DB\Transaction $transaction    
               
     ) {
         $this->helper = $helper;
-        $this->orderSender = $orderSender;
         $this->httpClientFactory = $httpClientFactory;
         $this->checkoutSession = $checkoutSession;
+        $this->invoiceService = $invoiceService;
+        $this->transaction = $transaction;
 
         parent::__construct(
             $context,
@@ -64,22 +70,30 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
         );
 
     }
-
-    /*public function canUseForCurrency($currencyCode) {
-        if (!in_array($currencyCode, $this->_supportedCurrencyCodes)) {
-            return false;
-        }
-        return true;
-    }*/
-
+    
+    /**
+     * Get redirect url
+     *
+     * @return void
+     */
     public function getRedirectUrl() {
         return $this->helper->getUrl($this->getConfigData('redirect_url'));
     }
-
+    
+    /**
+     * Get return url
+     *
+     * @return void
+     */
     public function getReturnUrl() {
         return $this->helper->getUrl($this->getConfigData('return_url'));
     }
-
+    
+    /**
+     * Get notify url
+     *
+     * @return void
+     */
     public function getNotifyUrl() {
         return $this->helper->getUrl($this->getConfigData('notify_url'));
     }
@@ -95,36 +109,41 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
         }
         return $this->getConfigData('test_url');
     }
-
+    
+    /**
+     * Build checkout request
+     *
+     * @return void
+     */
     public function buildCheckoutRequest() {
-        $order = $this->checkoutSession->getLastRealOrder();
-        $billing_address = $order->getBillingAddress();
-
-        $order->setCanSendNewEmailFlag(false);
+        // $order = $this->checkoutSession->getLastRealOrder();
+        $quote = $this->checkoutSession->getQuote();
+        $billing_address = $quote->getBillingAddress();
 
         $params = array();
         $params["appId"] = $this->getConfigData("app_id");
-        $params["orderId"] = $order->getEntityId();
-        $params["orderAmount"] = round($order->getGrandTotal(), 2);
-        $params["orderCurrency"] = $order->getOrderCurrencyCode();
+        $params["orderId"] = $quote->getEntityId();
+        $params["orderAmount"] = round($quote->getGrandTotal(), 2);
+        $params["orderCurrency"] = $quote->getQuoteCurrencyCode();
         $params["customerName"] = $billing_address->getFirstName(). " ". $billing_address->getLastName();
- 
- /*     $params["city"]                 = $billing_address->getCity();
-        $params["state"]                = $billing_address->getRegion();
-        $params["zip"]                  = $billing_address->getPostcode();
-        $params["country"]              = $billing_address->getCountryId();
-*/
-        $params["customerEmail"] = $order->getCustomerEmail();
+
+        $params["customerEmail"] = $quote->getCustomerEmail();
         $params["customerPhone"] = $billing_address->getTelephone();
     
         $params["notifyUrl"] = $this->getNotifyUrl();
         
         $params["returnUrl"] = $this->getReturnUrl();
+        $params["source"] = "magento";
         $params["signature"] = $this->generateCFSignature($params);
-
         return $params;
     }
-
+    
+    /**
+     * Generate CF Signature
+     *
+     * @param  mixed $params
+     * @return void
+     */
     public function generateCFSignature($params) {
         $secretKey = $this->getConfigData('secret_key');
         ksort($params);
@@ -135,11 +154,14 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
         $signature = hash_hmac('sha256', $signatureData, $secretKey, true);
         return base64_encode($signature);
     }
-
-    //validate response
+    
+    /**
+     * Validate response
+     *
+     * @param  mixed $returnParams
+     * @return void
+     */
     public function validateResponse($returnParams) {
-
-
           $orderId = $returnParams["orderId"];
           $orderAmount = $returnParams["orderAmount"];   
           $paymentMode = $returnParams["paymentMode"];  
@@ -162,7 +184,13 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
           return $returnParams["txStatus"];
 
     }
-
+    
+    /**
+     * Update order status and transaction id to order
+     *
+     * @param  mixed $order
+     * @return void
+     */
     public function postProcessing(\Magento\Sales\Model\Order $order,
             \Magento\Framework\DataObject $payment, $response) {
         
@@ -173,8 +201,27 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
         $payment->setIsTransactionClosed(0);
         $payment->place();
         $order->setStatus('processing');
-        $order->sendNewOrderEmail();
+        $order->setState('processing');
         $order->save();
+        $this->generateInvoice($order);
+    }
+
+    protected function generateInvoice($order)
+    {
+        $invoice = $this->invoiceService->prepareInvoice($order);
+        $invoice->register();
+        $invoice->save();
+        $transactionSave = $this->transaction->addObject(
+                $invoice
+            )->addObject(
+                $invoice->getOrder()
+            );
+            $transactionSave->save();
+            $order->addStatusHistoryComment(
+                __('Notified customer about invoice #%1.', $invoice->getId())
+            )
+            ->setIsCustomerNotified(true)
+            ->save();
     }
 
 }
