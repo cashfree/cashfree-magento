@@ -25,6 +25,7 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract {
      * @return void
      */
     public function __construct(
+        \Psr\Log\LoggerInterface $logger,
         \Magento\Framework\App\CacheInterface $cache,
         \Magento\Sales\Api\Data\OrderInterface $order,
         \Magento\Framework\App\Action\Context $context,
@@ -40,6 +41,7 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract {
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepo,
         \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
     ) {
+        $this->logger           = $logger;
         $this->_customerSession = $customerSession;
         $this->quoteRepository  = $quoteRepository;
         $this->_paymentMethod   = $paymentMethod;
@@ -50,17 +52,17 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract {
         $this->objectManagement = \Magento\Framework\App\ObjectManager::getInstance();
         
         parent::__construct(
-            $context,
-            $customerSession,
-            $checkoutSession,
-            $orderFactory,
-            $paymentMethod,
-            $checkoutHelper,
-            $resultJsonFactory,
             $cache,
             $order,
+            $context,
+            $orderFactory,
+            $customerSession,
+            $checkoutSession,
+            $paymentMethod,
             $quoteManagement,
-            $storeManagement
+            $checkoutHelper,
+            $storeManagement,
+            $resultJsonFactory
         );
     }
     
@@ -84,7 +86,7 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract {
         try {
             $paymentMethod = $this->getPaymentMethod();
             $status = $paymentMethod->validateResponse($params);
-            
+            $debugLog = "";
             if ($status == "SUCCESS") {
                 $order = $this->quoteManagement->submit($quote);
 
@@ -102,25 +104,35 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract {
               
                 $returnUrl = $this->getCheckoutHelper()->getUrl('checkout/onepage/success');
                 $this->messageManager->addSuccess(__('Your payment was successful'));
+                $debugLog = "Order status changes to processing for quote id: ".$quoteId;
 
             } else if ($status == "CANCELLED") {
                 $quote->setIsActive(1)->setReservedOrderId(null)->save();
                 $this->_checkoutSession->replaceQuote($quote);
                 $this->messageManager->addError($params['txMsg']);
-                return $this->_redirect('checkout/cart');
+                $debugLog = "Order status changes to cancelled for quote id: ".$quoteId;
+                $returnUrl = $this->getCheckoutHelper()->getUrl('checkout/cart');
                 
             } else if ($status == "FAILED") {
                 $quote->setIsActive(1)->setReservedOrderId(null)->save();
                 $this->_checkoutSession->replaceQuote($quote);
                 $this->messageManager->addError($params['txMsg']);
-                return $this->_redirect('checkout/cart');
+                $debugLog = "Order status changes to falied for quote id: ".$quoteId;
+                $returnUrl = $this->getCheckoutHelper()->getUrl('checkout/cart');
 
             } else if($status == "PENDING"){
+                $debugLog = "Order status changes to pending for quote id: ".$quoteId;
                 $this->messageManager->addWarning(__('Your payment is pending'));
 
             } else{
+                $debugLog = "Order status changes to pending for quote id: ".$quoteId;
                 $this->messageManager->addErrorMessage(__('There is an error.Payment status is pending'));
                 $returnUrl = $this->getCheckoutHelper()->getUrl('checkout/onepage/failure');
+            }
+
+            $enabledDebug = $paymentMethod->enabledDebugLog();
+            if($enabledDebug === "1"){
+                $this->logger->info($debugLog);
             }
               
         } catch (\Magento\Framework\Exception\LocalizedException $e) {

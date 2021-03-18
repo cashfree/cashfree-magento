@@ -39,19 +39,18 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
      */
 
       public function __construct(
-        \Magento\Framework\Model\Context $context,
         \Magento\Framework\Registry $registry,
-        \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory,
-        \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory,
+        \Magento\Framework\Model\Context $context,
         \Magento\Payment\Helper\Data $paymentData,
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Payment\Model\Method\Logger $logger,
         \Cashfree\Cfcheckout\Helper\Cfcheckout $helper,
-        \Magento\Framework\HTTP\ZendClientFactory $httpClientFactory,
+        \Magento\Framework\DB\Transaction $transaction,    
         \Magento\Checkout\Model\Session $checkoutSession,
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
-        \Magento\Framework\DB\Transaction $transaction    
-              
+        \Magento\Framework\HTTP\ZendClientFactory $httpClientFactory,
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory,
+        \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory
     ) {
         $this->helper = $helper;
         $this->httpClientFactory = $httpClientFactory;
@@ -116,7 +115,6 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
      * @return void
      */
     public function buildCheckoutRequest() {
-        // $order = $this->checkoutSession->getLastRealOrder();
         $quote = $this->checkoutSession->getQuote();
         $billing_address = $quote->getBillingAddress();
 
@@ -222,6 +220,11 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
             )
             ->setIsCustomerNotified(true)
             ->save();
+    }
+
+    public function enabledDebugLog()
+    {
+        return $this->getConfigData('enable_debug');
     }
 
 }

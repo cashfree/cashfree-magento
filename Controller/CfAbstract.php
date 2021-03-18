@@ -50,23 +50,23 @@ abstract class CfAbstract extends Action implements CsrfAwareActionInterface
      * @return void
      */
     public function __construct(
-        \Magento\Framework\App\Action\Context $context,
-        \Magento\Customer\Model\Session $customerSession,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Sales\Model\OrderFactory $orderFactory,
-        \Cashfree\Cfcheckout\Model\Cfcheckout $paymentMethod,
-        \Cashfree\Cfcheckout\Helper\Cfcheckout $checkoutHelper,
-        \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory,
         \Magento\Framework\App\CacheInterface $cache,
         \Magento\Sales\Api\Data\OrderInterface $order,
+        \Magento\Framework\App\Action\Context $context,
+        \Magento\Sales\Model\OrderFactory $orderFactory,
+        \Magento\Customer\Model\Session $customerSession,
+        \Magento\Checkout\Model\Session $checkoutSession,
+        \Cashfree\Cfcheckout\Model\Cfcheckout $paymentMethod,
         \Magento\Quote\Model\QuoteManagement $quoteManagement,
-        \Magento\Store\Model\StoreManagerInterface $storeManagement
+        \Cashfree\Cfcheckout\Helper\Cfcheckout $checkoutHelper,
+        \Magento\Store\Model\StoreManagerInterface $storeManagement,
+        \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
     ) {
-        $this->_customerSession = $customerSession;
-        $this->_checkoutSession = $checkoutSession;
         $this->_orderFactory = $orderFactory;
         $this->_paymentMethod = $paymentMethod;
         $this->_checkoutHelper = $checkoutHelper;
+        $this->_customerSession = $customerSession;
+        $this->_checkoutSession = $checkoutSession;
         $this->resultJsonFactory = $resultJsonFactory;
         parent::__construct($context);
     }

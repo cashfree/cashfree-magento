@@ -113,42 +113,42 @@ class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract {
      */
 
     public function __construct(
-        \Magento\Framework\App\Action\Context $context,
-        \Magento\Customer\Model\Session $customerSession,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Quote\Api\CartRepositoryInterface $quoteRepository,
-        \Magento\Sales\Model\OrderFactory $orderFactory,
         \Psr\Log\LoggerInterface $logger,
-        \Cashfree\Cfcheckout\Model\Cfcheckout $paymentMethod,
-        \Cashfree\Cfcheckout\Helper\Cfcheckout $checkoutHelper,
-        \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory,
         \Magento\Framework\App\CacheInterface $cache,
         \Magento\Sales\Api\Data\OrderInterface $order,
+        \Magento\Framework\App\Action\Context $context,
+        \Magento\Sales\Model\OrderFactory $orderFactory,
+        \Magento\Customer\Model\Session $customerSession,
+        \Magento\Checkout\Model\Session $checkoutSession,
+        \Cashfree\Cfcheckout\Model\Cfcheckout $paymentMethod,
         \Magento\Quote\Model\QuoteManagement $quoteManagement,
-        \Magento\Store\Model\StoreManagerInterface $storeManagement
+        \Cashfree\Cfcheckout\Helper\Cfcheckout $checkoutHelper,
+        \Magento\Quote\Api\CartRepositoryInterface $quoteRepository,
+        \Magento\Store\Model\StoreManagerInterface $storeManagement,
+        \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
     ) 
     {
         parent::__construct(
-            $context,
-            $customerSession,
-            $checkoutSession,
-            $orderFactory,
-            $paymentMethod,
-            $checkoutHelper,
-            $resultJsonFactory,
             $cache,
             $order,
+            $context,
+            $orderFactory,
+            $customerSession,
+            $checkoutSession,
+            $paymentMethod,
             $quoteManagement,
-            $storeManagement
+            $checkoutHelper,
+            $storeManagement,
+            $resultJsonFactory
         );
 
-        $this->order           = $order;
-        $this->logger          = $logger;
-        $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
-        $this->quoteManagement    = $quoteManagement;
-        $this->quoteRepository    = $quoteRepository;
-        $this->storeManagement    = $storeManagement;
-        $this->cache = $cache;
+        $this->order            = $order;
+        $this->cache            = $cache;
+        $this->logger           = $logger;
+        $this->storeManagement  = $storeManagement;
+        $this->quoteRepository  = $quoteRepository;
+        $this->quoteManagement  = $quoteManagement;
+        $this->objectManagement = \Magento\Framework\App\ObjectManager::getInstance();
     }
     
     /**
