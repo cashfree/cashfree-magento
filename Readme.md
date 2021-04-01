@@ -1,10 +1,10 @@
-### Install through "code.zip" file
+### Install through version-1.0.0 branch
 
-Extract the attached code.zip from release
+Extract the attached cashfree-magento-version-1.0.0.zip 
 
-Go to "app" folder
+Go to "app/code" folder
 
-Overwrite content of "code" folder with step one "code" folder (Note: if code folder not exist just place the code folder from step-1).
+Copy and pase "Cashfree" folder into code folder (Note: if code folder not exist, create a new folder name code).
 
 Run from magento root folder.
 
