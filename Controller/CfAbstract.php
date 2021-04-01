@@ -1,11 +1,12 @@
 <?php
 namespace Cashfree\Cfcheckout\Controller;
 
-use Magento\Framework\App\Action\Action;
-use Magento\Framework\App\RequestInterface;
+
 use Magento\Framework\Controller\ResultFactory;
+use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
+use Magento\Framework\App\RequestInterface;
 
 abstract class CfAbstract extends Action implements CsrfAwareActionInterface
 {
@@ -25,6 +26,16 @@ abstract class CfAbstract extends Action implements CsrfAwareActionInterface
     protected $_customerSession;
 
     /**
+     * @var \Magento\Quote\Api\CartRepositoryInterface
+     */
+    protected $quoteRepository;
+    
+    /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $_logger;
+
+    /**
      * @var \Magento\Quote\Model\Quote
      */
     protected $_quote;
@@ -40,34 +51,38 @@ abstract class CfAbstract extends Action implements CsrfAwareActionInterface
     protected $_checkoutHelper;
 
     /**
+     * @var \Magento\Quote\Api\CartManagementInterface
+     */
+    protected $cartManagement;
+
+    /**
      * @var \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
      */
     protected $resultJsonFactory;
-      
-    /**
-     * __construct
-     *
-     * @return void
-     */
+
+
+  
     public function __construct(
-        \Magento\Framework\App\CacheInterface $cache,
-        \Magento\Sales\Api\Data\OrderInterface $order,
         \Magento\Framework\App\Action\Context $context,
-        \Magento\Sales\Model\OrderFactory $orderFactory,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
+        \Magento\Quote\Api\CartRepositoryInterface $quoteRepository,
+        \Magento\Sales\Model\OrderFactory $orderFactory,
+        \Psr\Log\LoggerInterface $logger,
         \Cashfree\Cfcheckout\Model\Cfcheckout $paymentMethod,
-        \Magento\Quote\Model\QuoteManagement $quoteManagement,
         \Cashfree\Cfcheckout\Helper\Cfcheckout $checkoutHelper,
-        \Magento\Store\Model\StoreManagerInterface $storeManagement,
+        \Magento\Quote\Api\CartManagementInterface $cartManagement,
         \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
     ) {
+        $this->_customerSession = $customerSession;
+        $this->_checkoutSession = $checkoutSession;
+        $this->quoteRepository = $quoteRepository;
         $this->_orderFactory = $orderFactory;
         $this->_paymentMethod = $paymentMethod;
         $this->_checkoutHelper = $checkoutHelper;
-        $this->_customerSession = $customerSession;
-        $this->_checkoutSession = $checkoutSession;
+        $this->cartManagement = $cartManagement;
         $this->resultJsonFactory = $resultJsonFactory;
+        $this->_logger = $logger;
         parent::__construct($context);
     }
 
@@ -128,12 +143,7 @@ abstract class CfAbstract extends Action implements CsrfAwareActionInterface
             $this->_checkoutSession->getLastRealOrderId()
         );
     }
-    
-    /**
-     * Get Quote Object
-     *
-     * @return void
-     */
+
     protected function getQuote()
     {
         if (!$this->_quote) {
@@ -141,53 +151,27 @@ abstract class CfAbstract extends Action implements CsrfAwareActionInterface
         }
         return $this->_quote;
     }
-    
-    /**
-     * Get CheckoutSession
-     *
-     * @return void
-     */
+
     protected function getCheckoutSession()
     {
         return $this->_checkoutSession;
     }
-    
-    /**
-     * Get CustomerSession
-     *
-     * @return void
-     */
+
     public function getCustomerSession()
     {
         return $this->_customerSession;
     }
-    
-    /**
-     * Get PaymentMethod 
-     *
-     * @return void
-     */
+
     public function getPaymentMethod()
     {
         return $this->_paymentMethod;
     }
-    
-    /**
-     * Get CheckoutHelper
-     *
-     * @return void
-     */
+
     protected function getCheckoutHelper()
     {
         return $this->_checkoutHelper;
     }
-    	
-	/**
-	 * Create Csrf validation exception
-	 *
-	 * @param  mixed $request
-	 * @return InvalidRequestException
-	 */
+    
 	public function createCsrfValidationException(RequestInterface $request): ?InvalidRequestException
     {
         return null;

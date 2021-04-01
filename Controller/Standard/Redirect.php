@@ -3,12 +3,7 @@
 namespace Cashfree\Cfcheckout\Controller\Standard;
 
 class Redirect extends \Cashfree\Cfcheckout\Controller\CfAbstract {
-    
-    /**
-     * update quote to redirect payment page
-     *
-     * @return void
-     */
+
     public function execute() {
         if (!$this->getRequest()->isAjax()) {
             $this->_cancelPayment();
