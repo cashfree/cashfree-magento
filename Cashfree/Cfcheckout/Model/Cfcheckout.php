@@ -100,16 +100,11 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
 
         $params = array();
         $params["appId"] = $this->getConfigData("app_id");
-        $params["orderId"] = $order->getEntityId();
+        $params["orderId"] = $order->getIncrementId();
         $params["orderAmount"] = round($order->getGrandTotal(), 2);
         $params["orderCurrency"] = $order->getOrderCurrencyCode();
         $params["customerName"] = $billing_address->getFirstName(). " ". $billing_address->getLastName();
- 
- /*     $params["city"]                 = $billing_address->getCity();
-        $params["state"]                = $billing_address->getRegion();
-        $params["zip"]                  = $billing_address->getPostcode();
-        $params["country"]              = $billing_address->getCountryId();
-*/
+
         $params["customerEmail"] = $order->getCustomerEmail();
         $params["customerPhone"] = $billing_address->getTelephone();
     
@@ -170,6 +165,7 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
         $payment->setIsTransactionClosed(0);
         $payment->place();
         $order->setStatus('processing');
+        $order->setState('processing');
         $order->save();
     }
 
