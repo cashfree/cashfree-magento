@@ -1,19 +1,32 @@
 ### Install through "code.zip" file
 
-Extract the attached code.zip from release
+Download the latest repository as .zip file from code > Download Zip 
 
-Go to "app" folder
+Extract the Downloaded .zip file
 
-Overwrite content of "code" folder with step one "code" folder (Note: if code folder not exist just place the code folder from step-1).
+Go to "app" folder of your magento installation
 
-Run from magento root folder.
+Create new Folder Named "Cashfree" inide the code folder
+
+if there is no folder named "code". Please proceed creating one.  
+
+Paste the extracted files inside the Cashfree. 
+
+Finally the directory will look like 
+
+###### app>code>Cashfree
+
+Return to magento root folder.
+
+Execute the following Commands
 
 ```
 bin/magento module:enable Cashfree_Cfcheckout
 bin/magento setup:upgrade
 ```
 
-You can check if the module has been installed using `bin/magento module:status`
+Check for installed modules using 
+`bin/magento module:status`
 
 You should be able to see `Cashfree_Cfcheckout` in the module list
 
