@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package>
+    <name>Cashfree_Cfcheckout</name>
+    <version>0.0.1</version>
+    <stability>beta</stability>
+    <license uri="http://opensource.org/licenses/osl-3.0.php">OSL</license>
+    <channel>community</channel>
+    <extends/>
+    <summary>CashFree Payment Gateway</summary>
+    <description>Accept credit card, debit card and net banking payments</description>
+    <notes>Supports callback. Only INR transactions are allowed.</notes>
+    <authors><author><name>Akash Sinha</name><user>akash_cashfree</user><email>akash@gocashfree.com</email></author></authors>
+    <date>2016-07-11</date>
+    <time>06:17:14</time>
+    <contents><target name="magelocal"><dir name="Cashfree"><dir name="Cfcheckout"><dir name="Helper"><file name="Data.php" hash="7ae7592c9d7161890662241c6492775f"/></dir><dir name="Model"><file name="Standard.php" hash="1bcda05d892281302297b08ba59abcdf"/></dir><dir name="controllers"><file name="PaymentController.php" hash="9656679c76aea0c5960085728a73ae5d"/></dir><dir name="etc"><file name="config.xml" hash="5ad8ab6deeee6a18da56f21048e330b7"/><file name="system.xml" hash="1840654089ef741bfc811150252eff1d"/></dir></dir></dir></target><target name="magedesign"><dir name="frontend"><dir name="base"><dir name="default"><dir name="template"><dir name="cfcheckout"><file name="redirect.phtml" hash="39cd57352cbf8f09f4045a4df581cdda"/></dir></dir></dir></dir></dir></target><target name="mageetc"><dir name="modules"><file name="Cashfree_Cfcheckout.xml" hash="15c957381717c687230432b572c52d50"/></dir></target></contents>
+    <compatible/>
+    <dependencies><required><php><min>5.0.0</min><max>7.0.0</max></php></required></dependencies>
+</package>

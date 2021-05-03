@@ -1,10 +1,10 @@
-### Install through "code.zip" file
+### Installation
 
-Extract the attached code.zip from release
+Extract the attached master-1.9.zip
 
-Go to "app" folder
+Go to magento root folder
 
-Overwrite content of "code" folder with step one "code" folder (Note: if code folder not exist just place the code folder from step-1).
+Overwrite content of "app" folder with step one "app" folder 
 
 Run from magento root folder.
 
@@ -23,4 +23,6 @@ Go to Admin -> Stores -> Configuration -> Sales -> Payment Method -> Cashfree to
 
 Please try clearing your Magento Cache from your admin panel (System -> Cache Management) if you are experiencing any issues.
 
-### Note: This installation work only in Magento 2.x.
+## Note:
+- This installation work only in Magento 1.9.
+- For Magento 2.x please download `master` branch or Release version `v2.0.1`

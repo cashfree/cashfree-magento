@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <Cashfree_Cfcheckout>
+            <active>true</active>
+            <codePool>local</codePool>
+        </Cashfree_Cfcheckout>
+    </modules>
+</config>
