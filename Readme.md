@@ -23,4 +23,6 @@ Go to Admin -> Stores -> Configuration -> Sales -> Payment Method -> Cashfree to
 
 Please try clearing your Magento Cache from your admin panel (System -> Cache Management) if you are experiencing any issues.
 
-### Note: This installation work only in Magento 2.x.
+### Note:
+- This installation work only in Magento 2.x.
+- For Magento 1.9 please download `master-1.9` branch
