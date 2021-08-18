@@ -7,7 +7,7 @@ use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
 
-abstract class CfAbstract extends Action implements CsrfAwareActionInterface
+abstract class CfAbstract extends Action
 {
     /**
      * @var \Magento\Checkout\Model\Session
@@ -180,25 +180,6 @@ abstract class CfAbstract extends Action implements CsrfAwareActionInterface
     protected function getCheckoutHelper()
     {
         return $this->_checkoutHelper;
-    }
-    	
-	/**
-	 * Create Csrf validation exception
-	 *
-	 * @param  mixed $request
-	 * @return InvalidRequestException
-	 */
-	public function createCsrfValidationException(RequestInterface $request): ?InvalidRequestException
-    {
-        return null;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function validateForCsrf(RequestInterface $request): ?bool
-    {
-        return true;
     }
 	
 }
