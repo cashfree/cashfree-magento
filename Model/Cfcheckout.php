@@ -49,6 +49,7 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
         \Magento\Framework\HTTP\ZendClientFactory $httpClientFactory,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
         \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory,
         \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory
     ) {
@@ -57,6 +58,7 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
         $this->checkoutSession = $checkoutSession;
         $this->invoiceService = $invoiceService;
         $this->transaction = $transaction;
+        $this->orderSender = $orderSender;
 
         parent::__construct(
             $context,
@@ -120,7 +122,7 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
 
         $params = array();
         $params["appId"] = $this->getConfigData("app_id");
-        $params["orderId"] = $quote->getEntityId();
+        $params["orderId"] = $quote->getEntityId()."_".time();
         $params["orderAmount"] = round($quote->getGrandTotal(), 2);
         $params["orderCurrency"] = $quote->getQuoteCurrencyCode();
         $params["customerName"] = $billing_address->getFirstName(). " ". $billing_address->getLastName();
@@ -129,6 +131,7 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
         $params["customerPhone"] = $billing_address->getTelephone();
     
         $params["notifyUrl"] = $this->getNotifyUrl();
+        // $params["paymentModes"] = "upi";
         
         $params["returnUrl"] = $this->getReturnUrl();
         $params["source"] = "magento";
@@ -191,7 +194,7 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
      */
     public function postProcessing(\Magento\Sales\Model\Order $order,
             \Magento\Framework\DataObject $payment, $response) {
-        
+    
         $payment->setTransactionId($response['referenceId']);
         $payment->setTransactionAdditionalInfo('Transaction Message', $response['txMsg']);
         $payment->setAdditionalInformation('cashfree_payment_status', 'approved');
@@ -201,6 +204,7 @@ class Cfcheckout extends \Magento\Payment\Model\Method\AbstractMethod {
         $order->setStatus('processing');
         $order->setState('processing');
         $order->save();
+        $this->orderSender->send($order, true);
         $this->generateInvoice($order);
     }
 

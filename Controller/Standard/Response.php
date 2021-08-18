@@ -38,6 +38,7 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract {
         \Magento\Customer\Model\CustomerFactory $customerFactory,
         \Magento\Store\Model\StoreManagerInterface $storeManagement,
         \Magento\Quote\Api\CartRepositoryInterface $quoteRepository,
+        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepo,
         \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
     ) {
@@ -49,6 +50,7 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract {
         $this->storeManagement  = $storeManagement;
         $this->customerRepo     = $customerRepo;
         $this->customerFactory  = $customerFactory;
+        $this->orderRepository = $orderRepository;
         $this->objectManagement = \Magento\Framework\App\ObjectManager::getInstance();
         
         parent::__construct(
@@ -74,7 +76,8 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract {
     public function execute() {
         $returnUrl = $this->getCheckoutHelper()->getUrl('checkout');
         $params = $this->getRequest()->getParams();
-        $quoteId   = $params['orderId'];
+        $quoteId = strip_tags($params["orderId"]);
+        list($quoteId) = explode('_', $quoteId);
         $quote = $this->getQuoteObject($params, $quoteId);
         if (!$this->getCustomerSession()->isLoggedIn()) {
             $customerId = $quote->getCustomer()->getId();
@@ -88,19 +91,33 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract {
             $status = $paymentMethod->validateResponse($params);
             $debugLog = "";
             if ($status == "SUCCESS") {
-                $order = $this->quoteManagement->submit($quote);
-
-                $payment = $order->getPayment();        
+                # fetch the related sales order
+                # To avoid duplicate order entry for same quote
+                $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
+                                                   ->getCollection()
+                                                   ->addFieldToSelect('entity_id')
+                                                   ->addFilter('quote_id', $quoteId)
+                                                   ->getFirstItem();
+                $salesOrder = $collection->getData();
+               
+                if (empty($salesOrder['entity_id']) === true) {
+                    $order = $this->quoteManagement->submit($quote);
+                    $payment = $order->getPayment();        
                 
-                $paymentMethod->postProcessing($order, $payment, $params);
+                    $paymentMethod->postProcessing($order, $payment, $params);
+                } else {
+                    $order = $this->orderRepository->get($salesOrder['entity_id']);
+                }
                 $this->_checkoutSession
                             ->setLastQuoteId($quote->getId())
                             ->setLastSuccessQuoteId($quote->getId())
                             ->clearHelperData();
-                
-                $this->_checkoutSession->setLastOrderId($order->getId())
-                                           ->setLastRealOrderId($order->getIncrementId())
-                                           ->setLastOrderStatus($order->getStatus());
+
+                if ($order) {
+                    $this->_checkoutSession->setLastOrderId($order->getId())
+                                        ->setLastRealOrderId($order->getIncrementId())
+                                        ->setLastOrderStatus($order->getStatus());
+                }
               
                 $returnUrl = $this->getCheckoutHelper()->getUrl('checkout/onepage/success');
                 $this->messageManager->addSuccess(__('Your payment was successful'));

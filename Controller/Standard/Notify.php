@@ -163,7 +163,8 @@ class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract {
         $status = $paymentMethod->validateResponse($params);
         $referenceId    = $params['referenceId'];
         if ($status == "SUCCESS") {
-            $quoteId   = $params['orderId'];
+            $quoteId = strip_tags($params["orderId"]);
+            list($quoteId) = explode('_', $quoteId);
             if (empty($this->cache->load("quote_Front_processing_".$quoteId)) === false)
             {
                 $this->logger->info("Cashfree Webhook: Order processing is active for quoteID: $quoteId");
