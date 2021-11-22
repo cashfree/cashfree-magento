@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2016 Magento. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Framework\App\Request\CsrfValidator">
+        <plugin name="csrf_validator_skip" type="Cashfree\Cfcheckout\Plugin\CsrfValidatorSkip" />
+    </type>
+
+    <virtualType name="CashfreeLogger" type="Magento\Framework\Logger\Monolog">
+	    <arguments>
+	        <argument name="handlers" xsi:type="array">
+	            <item name="error" xsi:type="object">Cashfree\Cfcheckout\Model\LogHandler</item>
+	        </argument>
+	    </arguments>
+	</virtualType>
+
+	<type name="Cashfree\Cfcheckout\Controller\Standard\Response">
+	    <arguments>
+	        <argument name="logger" xsi:type="object">CashfreeLogger</argument>
+	    </arguments>
+	</type>
+
+	<type name="Cashfree\Cfcheckout\Controller\Standard\Request">
+	    <arguments>
+	        <argument name="logger" xsi:type="object">CashfreeLogger</argument>
+	    </arguments>
+	</type>
+
+	<type name="Cashfree\Cfcheckout\Controller\Standard\Notify">
+	    <arguments>
+	        <argument name="logger" xsi:type="object">CashfreeLogger</argument>
+	    </arguments>
+	</type>
+</config>

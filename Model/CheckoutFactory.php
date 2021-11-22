@@ -26,7 +26,7 @@ class CheckoutFactory
      *
      * @param string $className
      * @param array $data
-     * @return \Cashfree\Magento\Model\PaymentMethod
+     * @return \Cashfree\Cfcheckout\Model\PaymentMethod
      */
     public function create($className, array $data = [])
     {

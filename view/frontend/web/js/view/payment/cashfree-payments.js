@@ -4,8 +4,8 @@ define([
 ],function(Component,renderList){
     'use strict';
     renderList.push({
-        type : 'cfcheckout',
-        component : 'Cashfree_Cfcheckout/js/view/payment/method-renderer/cfcheckout-method'
+        type : 'cashfree',
+        component : 'Cashfree_Cfcheckout/js/view/payment/method-renderer/cashfree-method'
     });
 
     return Component.extend({});

@@ -1,74 +1,56 @@
 <?php
+
 namespace Cashfree\Cfcheckout\Controller;
 
-use Magento\Framework\App\Action\Action;
+use Cashfree\Cfcheckout\Model\Config;
 use Magento\Framework\App\RequestInterface;
-use Magento\Framework\Controller\ResultFactory;
-use Magento\Framework\App\CsrfAwareActionInterface;
-use Magento\Framework\App\Request\InvalidRequestException;
 
-abstract class CfAbstract extends Action implements CsrfAwareActionInterface
+/**
+ * Cashfree Abstract Controller
+ */
+abstract class CfAbstract extends \Magento\Framework\App\Action\Action
 {
     /**
-     * @var \Magento\Checkout\Model\Session
+     * @var \Cashfree\Cfcheckout\Model\CheckoutFactory
      */
-    protected $_checkoutSession;
-
-    /**
-     * @var \Magento\Sales\Model\OrderFactory
-     */
-    protected $_orderFactory;
-
-    /**
-     * @var \Magento\Customer\Model\Session
-     */
-    protected $_customerSession;
+    protected $checkoutFactory;
 
     /**
      * @var \Magento\Quote\Model\Quote
      */
-    protected $_quote;
+    protected $quote = false;
 
     /**
-     * @var \Tco\Checkout\Model\Checkout
+     * @var \Magento\Customer\Model\Session
      */
-    protected $_paymentMethod;
+    protected $customerSession;
 
     /**
-     * @var \Tco\Checkout\Helper\Checkout
+     * @var \Magento\Checkout\Model\Session
      */
-    protected $_checkoutHelper;
+    protected $checkoutSession;
 
     /**
-     * @var \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
+     * @var \Cashfree\Cfcheckout\Model\PaymentMethod
      */
-    protected $resultJsonFactory;
-      
+    protected $checkout;
+
     /**
-     * __construct
-     *
-     * @return void
+     * @param \Magento\Framework\App\Action\Context $context
+     * @param \Magento\Customer\Model\Session $customerSession
+     * @param \Magento\Checkout\Model\Session $checkoutSession
+     * @param \Cashfree\Cfcheckout\Model\Config $config
      */
     public function __construct(
-        \Magento\Framework\App\CacheInterface $cache,
-        \Magento\Sales\Api\Data\OrderInterface $order,
         \Magento\Framework\App\Action\Context $context,
-        \Magento\Sales\Model\OrderFactory $orderFactory,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Cashfree\Cfcheckout\Model\Cfcheckout $paymentMethod,
-        \Magento\Quote\Model\QuoteManagement $quoteManagement,
-        \Cashfree\Cfcheckout\Helper\Cfcheckout $checkoutHelper,
-        \Magento\Store\Model\StoreManagerInterface $storeManagement,
-        \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
+        \Cashfree\Cfcheckout\Model\Config $config
     ) {
-        $this->_orderFactory = $orderFactory;
-        $this->_paymentMethod = $paymentMethod;
-        $this->_checkoutHelper = $checkoutHelper;
-        $this->_customerSession = $customerSession;
-        $this->_checkoutSession = $checkoutSession;
-        $this->resultJsonFactory = $resultJsonFactory;
         parent::__construct($context);
+        $this->customerSession = $customerSession;
+        $this->checkoutSession = $checkoutSession;
+        $this->config = $config;
     }
 
     /**
@@ -87,118 +69,15 @@ abstract class CfAbstract extends Action implements CsrfAwareActionInterface
     }
 
     /**
-     * Cancel order, return quote to customer
+     * Return checkout quote object
      *
-     * @param string $errorMsg
-     * @return false|string
-     */
-    protected function _cancelPayment($errorMsg = '')
-    {
-        $gotoSection = false;
-        $this->_checkoutHelper->cancelCurrentOrder($errorMsg);
-        if ($this->_checkoutSession->restoreQuote()) {
-            //Redirect to payment step
-            $gotoSection = 'paymentMethod';
-        }
-
-       return $gotoSection;
-    }
-
-    /**
-     * Get order object
-     *
-     * @return \Magento\Sales\Model\Order
-     */
-    protected function getOrderById($order_id)
-    {
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $order = $objectManager->get('Magento\Sales\Model\Order');
-        $order_info = $order->load($order_id);
-        return $order_info;
-    }
-
-    /**
-     * Get order object
-     *
-     * @return \Magento\Sales\Model\Order
-     */
-    protected function getOrder()
-    {
-        return $this->_orderFactory->create()->loadByIncrementId(
-            $this->_checkoutSession->getLastRealOrderId()
-        );
-    }
-    
-    /**
-     * Get Quote Object
-     *
-     * @return void
+     * @return \Magento\Quote\Model\Quote
      */
     protected function getQuote()
     {
-        if (!$this->_quote) {
-            $this->_quote = $this->getCheckoutSession()->getQuote();
+        if (!$this->quote) {
+            $this->quote = $this->checkoutSession->getQuote();
         }
-        return $this->_quote;
+        return $this->quote;
     }
-    
-    /**
-     * Get CheckoutSession
-     *
-     * @return void
-     */
-    protected function getCheckoutSession()
-    {
-        return $this->_checkoutSession;
-    }
-    
-    /**
-     * Get CustomerSession
-     *
-     * @return void
-     */
-    public function getCustomerSession()
-    {
-        return $this->_customerSession;
-    }
-    
-    /**
-     * Get PaymentMethod 
-     *
-     * @return void
-     */
-    public function getPaymentMethod()
-    {
-        return $this->_paymentMethod;
-    }
-    
-    /**
-     * Get CheckoutHelper
-     *
-     * @return void
-     */
-    protected function getCheckoutHelper()
-    {
-        return $this->_checkoutHelper;
-    }
-    	
-	/**
-	 * Create Csrf validation exception
-	 *
-	 * @param  mixed $request
-	 * @return InvalidRequestException
-	 */
-	public function createCsrfValidationException(RequestInterface $request): ?InvalidRequestException
-    {
-        return null;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function validateForCsrf(RequestInterface $request): ?bool
-    {
-        return true;
-    }
-	
 }
