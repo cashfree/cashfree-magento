@@ -1,13 +1,11 @@
 <?php
 
-
 namespace Cashfree\Cfcheckout\Model;
-
 
 class Environment implements \Magento\Framework\Option\ArrayInterface
 {
-    const ENVIRONMENT_PROD   = 'prod';
-    const ENVIRONMENT_TEST   = 'test';
+    const ENVIRONMENT_PROD   = 'production';
+    const ENVIRONMENT_TEST   = 'sandbox';
 
     /**
      * Possible environment types

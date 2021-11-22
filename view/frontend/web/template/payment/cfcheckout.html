@@ -27,10 +27,11 @@
                         type="submit"
                         data-bind="
                         click: preparePayment,
+                        css: {disabled: !isPlaceOrderActionAllowed()},
                         enable: (getCode() == isChecked())
                         "
                         disabled>
-                    <span data-bind="i18n: 'Continue Checkout'"></span>
+                    <span data-bind="i18n: 'Pay with Cashfree'"></span>
                 </button>
             </div>
         </div>

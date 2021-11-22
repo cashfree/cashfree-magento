@@ -3,13 +3,18 @@
 namespace Cashfree\Cfcheckout\Controller\Standard;
 
 use Magento\Framework\DataObject;
-use Cashfree\Cfcheckout\Model\Cfcheckout;
+use Cashfree\Cfcheckout\Model\Config;
 use Magento\Framework\App\RequestInterface;
-use Cashfree\Cfcheckout\Model\CheckoutFactory;
-use Magento\Framework\Controller\ResultFactory;
+use Cashfree\Cfcheckout\Model\PaymentMethod;
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
 
+
+/**
+ * Class Notify
+ * To notify customer when if there is any netword falure during payment
+ * @package Cashfree\Cfcheckout\Controller\Standard\Notify
+ */
 class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract {
 
     /**
@@ -41,11 +46,6 @@ class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract {
      * @var \Magento\Quote\Model\Quote
      */
     protected $_quote;
-
-    /**
-     * @var \Tco\Checkout\Model\Checkout
-     */
-    protected $_paymentMethod;
 
     /**
      * @var \Tco\Checkout\Helper\Checkout
@@ -100,46 +100,41 @@ class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract {
     const STATUS_APPROVED = 'APPROVED';
 
     /**
-     * @param \Magento\Framework\App\Action\Context $context
-     * @param \Magento\Cashfree\Model\CheckoutFactory $checkoutFactory
-     * @param \Magento\Catalog\Model\Session $catalogSession
-     * @param \Magento\Quote\Model\QuoteRepository $quoteRepository,
-     * @param \Magento\Sales\Api\Data\OrderInterface $order
-     * @param \Magento\Quote\Model\QuoteManagement $quoteManagement
-     * @param \Magento\Store\Model\StoreManagerInterface $storeManagement
-     * @param \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository
+     * @param \Psr\Log\LoggerInterface $logger,
+     * @param \Cashfree\Cfcheckout\Model\Config $config 
      * @param \Magento\Framework\App\CacheInterface $cache
-     * @param \Psr\Log\LoggerInterface $logger
+     * @param \Magento\Sales\Api\Data\OrderInterface $order
+     * @param \Magento\Framework\App\Action\Context $context
+     * @param \Magento\Sales\Model\OrderFactory $orderFactory
+     * @param \Magento\Customer\Model\Session $customerSession
+     * @param \Magento\Checkout\Model\Session $checkoutSession
+     * @param \Cashfree\Cfcheckout\Model\PaymentMethod $paymentMethod
+     * @param \Magento\Quote\Model\QuoteManagement $quoteManagement
+     * @param \Magento\Quote\Model\QuoteRepository $quoteRepository,
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManagement
+     * @param \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
      */
 
     public function __construct(
         \Psr\Log\LoggerInterface $logger,
+        \Cashfree\Cfcheckout\Model\Config $config,
         \Magento\Framework\App\CacheInterface $cache,
         \Magento\Sales\Api\Data\OrderInterface $order,
         \Magento\Framework\App\Action\Context $context,
         \Magento\Sales\Model\OrderFactory $orderFactory,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Cashfree\Cfcheckout\Model\Cfcheckout $paymentMethod,
         \Magento\Quote\Model\QuoteManagement $quoteManagement,
-        \Cashfree\Cfcheckout\Helper\Cfcheckout $checkoutHelper,
         \Magento\Quote\Api\CartRepositoryInterface $quoteRepository,
         \Magento\Store\Model\StoreManagerInterface $storeManagement,
         \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
     ) 
     {
         parent::__construct(
-            $cache,
-            $order,
             $context,
-            $orderFactory,
             $customerSession,
             $checkoutSession,
-            $paymentMethod,
-            $quoteManagement,
-            $checkoutHelper,
-            $storeManagement,
-            $resultJsonFactory
+            $config
         );
 
         $this->order            = $order;
@@ -157,48 +152,102 @@ class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract {
      * @return void
      */
     public function execute() {
-        sleep(20);
         $params = $this->getRequest()->getParams();
-        $paymentMethod = $this->getPaymentMethod();
-        $status = $paymentMethod->validateResponse($params);
         $referenceId    = $params['referenceId'];
-        if ($status == "SUCCESS") {
-            $quoteId = strip_tags($params["orderId"]);
-            list($quoteId) = explode('_', $quoteId);
+        $quoteId = strip_tags($params["orderId"]);
+        list($quoteId) = explode('_', $quoteId);
+
+        try
+        {
+            $orderLinkCollection = $this->_objectManager->get('Cashfree\Cfcheckout\Model\OrderLink')
+                                                        ->getCollection()
+                                                        ->addFilter('quote_id', $quoteId)
+                                                        ->addFilter('cf_order_id', $params["orderId"])
+                                                        ->getFirstItem();
+
+            $orderLink = $orderLinkCollection->getData();
+
+            if (empty($orderLink['entity_id']) === false)
+            {
+                if ($orderLink['order_placed'])
+                {
+                    $this->logger->info(__("Cashfree Notify: Quote order is inactive for quoteID: $quoteId and Cashfree reference_id(:$referenceId) with Maze OrderID (:%1) ", $orderLink['increment_order_id']));
+
+                    return;
+                }
+
+                //set the 1st webhook notification time
+                if ($orderLink['notify_count'] < 1)
+                {
+                    $orderLinkCollection->setWebhookFirstNotifiedAt(time());
+                }
+
+                $orderLinkCollection->setNotifyCount($orderLink['notify_count'] + 1)
+                                    ->setCfReferenceId($referenceId)
+                                    ->save();
+
+
+                // Check if front-end cache flag active
+                if (empty($this->cache->load("quote_Front_processing_".$quoteId)) === false)
+                {
+                    $this->logger->info("Cashfree Notify: Order processing is active for quoteID: $quoteId and Cashfree reference_id(:$referenceId)");
+                    header('Status: 409 Conflict, too early for processing', true, 409);
+
+                    exit;
+                }
+
+                $notifyWaitTime = $this->config->getConfigData(Config::NOTIFY_WAIT_TIME) ? $this->config->getConfigData(Config::NOTIFY_WAIT_TIME) : 300;
+
+                //ignore notify call for some time as per config, from first notify call
+                if ((time() - $orderLinkCollection->getNotifyFirstNotifiedAt()) < $notifyWaitTime)
+                {
+                    $this->logger->info(__("Cashfree Notify: Order processing is active for quoteID: $quoteId and Cashfree reference_id(:$referenceId) and notify attempt: %1", ($orderLink['notify_count'] + 1)));
+                    header('Status: 409 Conflict, too early for processing', true, 409);
+
+                    exit;
+                }
+            }
+
             if (empty($this->cache->load("quote_Front_processing_".$quoteId)) === false)
             {
-                $this->logger->info("Cashfree Webhook: Order processing is active for quoteID: $quoteId");
+                $this->logger->info("Cashfree Notify: Order processing is active for quoteID: $quoteId");
                 header('Status: 409 Conflict, too early for processing', true, 409);
                 exit;
             }
 
-            $this->cache->save("started", "quote_processing_$quoteId", ["cashfree"], 30);
+            $cfOrderAmount    = round($params['orderAmount'], 2);
+
+            $this->logger->info("Cashfree Notify processing started for cashfree reference_id(:$referenceId)");
 
             //validate if the quote Order is still active
             $quote = $this->quoteRepository->get($quoteId);
 
-            $quoteAmount = number_format($quote->getGrandTotal(), 2, '.', '');
-            if ($quoteAmount !== $params['orderAmount'])
-            {
-                $this->logger->info("Cashfree notify: Amount paid doesn't match with store order amount for Cashfree reference_id(:$referenceId)");
-                    return;
-            }
-
             //exit if quote is not active
             if (!$quote->getIsActive())
             {
-                $this->logger->info("Cashfree Webhook: Quote order is inactive for quoteID: $quoteId");
+                $this->logger->info("Cashfree Notify: Quote order is inactive for quoteID: $quoteId and Cashfree reference_id(:$referenceId)");
+
+                return;
+            }
+
+            //validate amount before placing order
+            $quoteAmount = (round($quote->getGrandTotal(), 2));
+
+            if ($quoteAmount != $cfOrderAmount)
+            {
+                $this->logger->critical("Cashfree Notify: Amount processed for payment doesn't match with store order amount for Cashfree reference_id(:$referenceId)");
+
                 return;
             }
 
             # fetch the related sales order and verify the payment ID with cashfree reference id
             # To avoid duplicate order entry for same quote 
             $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
-                                            ->getCollection()
-                                            ->addFieldToSelect('entity_id')
-                                            ->addFilter('quote_id', $quoteId)
-                                            ->getFirstItem();
-            
+                        ->getCollection()
+                        ->addFieldToSelect('entity_id')
+                        ->addFilter('quote_id', $quoteId)
+                        ->getFirstItem();
+
             $salesOrder = $collection->getData();
 
             if (empty($salesOrder['entity_id']) === false)
@@ -208,27 +257,69 @@ class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract {
 
                 if ($orderReferenceId === $referenceId)
                 {
-                    $this->logger->info("Cashfree Webhook: Sales Order and payment already exist for Cashfree reference_id(:$referenceId)");
+                    $this->logger->info("Cashfree Notify: Sales Order and payment already exist for Cashfree reference_id(:$referenceId)");
                     return;
                 }
             }
 
             $quote = $this->getQuoteObject($params, $quoteId);
 
+            $this->logger->info("Cashfree Notify: Order creation started with quoteID:$quoteId.");
+
+            //validate if the quote Order is still active
+            $quoteUpdated = $this->quoteRepository->get($quoteId);
+
+            //exit if quote is not active
+            if (!$quoteUpdated->getIsActive())
+            {
+                $this->logger->info("Cashfree Notify: Quote order is inactive for quoteID: $quoteId and Cashfree reference_id(:$referenceId)");
+
+                return;
+            }
+
+            if (empty($orderLink['entity_id']) === false)
+            {
+                if ($orderLink['order_placed'])
+                {
+                    $this->logger->info(__("Cashfree Notify: Quote order is inactive for quoteID: $quoteId and Cashfree reference_id(:$referenceId) with Maze OrderID (:%1) ", $orderLink['increment_order_id']));
+
+                    return;
+                }
+            }
+
+            //Now start processing the new order creation through notify
+
+            $this->cache->save("started", "quote_processing_$quoteId", ["cashfree"], 30);
+
+            $this->logger->info("Cashfree Notify: Quote submitted for order creation with quoteID:$quoteId.");
+
             $order = $this->quoteManagement->submit($quote);
 
-            $payment = $order->getPayment();        
-            
-            $paymentMethod->postProcessing($order, $payment, $params);
-        
+            $payment = $order->getPayment();
+
+            $this->logger->info("Cashfree Notify: Adding payment to order for quoteID:$quoteId.");
+
+            $payment->setAmountPaid($cfOrderAmount)
+                    ->setLastTransId($referenceId)
+                    ->setTransactionId($referenceId)
+                    ->setIsTransactionClosed(true)
+                    ->setShouldCloseParentTransaction(true);
+
+            //set cashfree notify fields
+            $order->setByCashfreeNotify(1);
+
+            $order->save();
+
             //disable the quote
             $quote->setIsActive(0)->save();
 
-            $this->logger->info("Cashfree Webhook Processed successfully for Cashfree reference_id(:$referenceId): and quoteID(: $quoteId) and OrderID(: ". $order->getEntityId() .")");
+            $this->logger->info("Cashfree Notify Processed successfully for Cashfree reference_id(:$referenceId): and quoteID(: $quoteId) and OrderID(: ". $order->getEntityId() .")");
+            return;
         }
-        else {
-            $this->logger->info("Cashfree Webhook: Check with merchant for Cashfree reference_id(:$referenceId)");
-                    return;
+        catch (\Exception $e)
+        {
+            $this->logger->critical("Cashfree Notify: Quote submitted for order creation with quoteID:$quoteId failed with error: ". $e->getMessage());
+            return;
         }
 
     }
@@ -248,7 +339,7 @@ class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract {
         $lastName  = $quote->getBillingAddress()->getLastname() ?? 'null';
         $email     = $quote->getBillingAddress()->getEmail() ?? 'null';
 
-        $quote->getPayment()->setMethod(Cfcheckout::PAYMENT_CFCHECKOUT_CODE);
+        $quote->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
 
         $store = $quote->getStore();
 

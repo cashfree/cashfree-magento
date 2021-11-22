@@ -8,10 +8,9 @@ use Magento\Framework\App\Helper\AbstractHelper;
 
 class Cfcheckout extends AbstractHelper
 {
-    protected $session;
     protected $quote;
+    protected $session;
     protected $quoteManagement;
-    protected $orderSender;
     
     /**
      * Initialise helper function for checkout
@@ -20,40 +19,14 @@ class Cfcheckout extends AbstractHelper
      */
     public function __construct(
         Context $context,
-        \Magento\Checkout\Model\Session $session,
         \Magento\Quote\Model\Quote $quote,
+        \Magento\Checkout\Model\Session $session,
         \Magento\Quote\Model\QuoteManagement $quoteManagement
     ) {
-        $this->session = $session;
-        $this->quote = $quote;
-        $this->quoteManagement = $quoteManagement;
+        $this->session          = $session;
+        $this->quote            = $quote;
+        $this->quoteManagement  = $quoteManagement;
         parent::__construct($context);
-    }
-    
-    /**
-     * Cancel current order
-     *
-     * @param  mixed $comment
-     * @return void
-     */
-    public function cancelCurrentOrder($comment)
-    {
-        $order = $this->session->getLastRealOrder();
-        if ($order->getId() && $order->getState() != Order::STATE_CANCELED) {
-            $order->registerCancellation($comment)->save();
-            return true;
-        }
-        return false;
-    }
-    
-    /**
-     * Restore quote
-     *
-     * @return void
-     */
-    public function restoreQuote()
-    {
-        return $this->session->restoreQuote();
     }
     
     /**

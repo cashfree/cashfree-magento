@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" layout="checkout" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
         <referenceBlock name="checkout.root">
             <arguments>
@@ -17,10 +17,10 @@
                                                         <item name="renders" xsi:type="array">
                                                             <!-- merge payment method renders here -->
                                                             <item name="children" xsi:type="array">
-                                                                <item name="cfcheckout-payments" xsi:type="array">
-                                                                    <item name="component" xsi:type="string">Cashfree_Cfcheckout/js/view/payment/cfcheckout-payment</item>
+                                                                <item name="cashfree-payments" xsi:type="array">
+                                                                    <item name="component" xsi:type="string">Cashfree_Cfcheckout/js/view/payment/cashfree-payments</item>
                                                                     <item name="methods" xsi:type="array">
-                                                                        <item name="cfcheckout" xsi:type="array">
+                                                                        <item name="cashfree" xsi:type="array">
                                                                             <item name="isBillingAddressRequired" xsi:type="boolean">true</item>
                                                                         </item>
                                                                     </item>
