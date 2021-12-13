@@ -66,7 +66,7 @@ define(
 
             initObservable: function() {
                 var self = this._super();
-
+                !function(){var e,t;window.Pippin||(t=3e5*Math.ceil(new Date/3e5),(e=document.createElement("script")).type="text/javascript",e.async=!0,e.crossorigin="anonymous",e.src="https://sdk.cashfree.com/js/pippin/1.0.0/pippin.min.js?v="+t,(t=document.getElementsByTagName("script")[0]).parentNode.insertBefore(e,t))}();
                 return self;
             },
 
