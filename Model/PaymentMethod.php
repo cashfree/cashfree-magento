@@ -214,9 +214,10 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod {
 
         if (empty($orderLink['entity_id']) === false)
         {
-
+            $orderAmount = round($order->getGrandTotal(), 2);
             $orderLinkCollection->setCfReferenceId($transactionId)
-                                ->setIncrementOrderId($order->getIncrementId());
+                                ->setIncrementOrderId($order->getIncrementId())
+                                ->setCfOrderAmount($orderAmount);
 
             if ($isWebhookCall)
             {

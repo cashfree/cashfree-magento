@@ -186,16 +186,6 @@ class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract {
                                     ->setCfReferenceId($referenceId)
                                     ->save();
 
-
-                // Check if front-end cache flag active
-                if (empty($this->cache->load("quote_Front_processing_".$quoteId)) === false)
-                {
-                    $this->logger->info("Cashfree Notify: Order processing is active for quoteID: $quoteId and Cashfree reference_id(:$referenceId)");
-                    header('Status: 409 Conflict, too early for processing', true, 409);
-
-                    exit;
-                }
-
                 $notifyWaitTime = $this->config->getConfigData(Config::NOTIFY_WAIT_TIME) ? $this->config->getConfigData(Config::NOTIFY_WAIT_TIME) : 300;
 
                 //ignore notify call for some time as per config, from first notify call
@@ -206,13 +196,6 @@ class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract {
 
                     exit;
                 }
-            }
-
-            if (empty($this->cache->load("quote_Front_processing_".$quoteId)) === false)
-            {
-                $this->logger->info("Cashfree Notify: Order processing is active for quoteID: $quoteId");
-                header('Status: 409 Conflict, too early for processing', true, 409);
-                exit;
             }
 
             $cfOrderAmount    = round($params['orderAmount'], 2);
