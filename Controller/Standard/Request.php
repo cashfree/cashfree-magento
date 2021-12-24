@@ -152,6 +152,11 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
 
             $cashfreeOrderId = $quote_id."_".time();
 
+            if (!$this->customerSession->isLoggedIn()) {
+                $this->getQuote()->setCustomerEmail($_POST['email']);
+                $this->getQuote()->save();
+            }
+
             $this->customerSession->setCustomerEmailAddress($_POST['email']);
 
             $params = array(

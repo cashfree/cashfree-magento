@@ -11,6 +11,7 @@ class Config
     const KEY_SPECIFIC_COUNTRY = 'specificcountry';
     const KEY_ACTIVE = 'active';
     const KEY_PUBLIC_KEY = 'app_id';
+    const KEY_TITLE = 'title';
     const PAYMENT_ENVIRONMENT = 'environment';
     const NOTIFY_WAIT_TIME = 'notify_wait_time';
 
@@ -45,6 +46,11 @@ class Config
     public function getAppId()
     {
         return $this->getConfigData(self::KEY_PUBLIC_KEY);
+    }
+
+    public function getTitle()
+    {
+        return $this->getConfigData(self::KEY_TITLE);
     }
     
     public function getPaymentEnvironment()

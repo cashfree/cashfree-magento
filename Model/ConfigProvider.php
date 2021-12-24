@@ -65,7 +65,8 @@ class ConfigProvider implements ConfigProviderInterface
         $config = [
             'payment' => [
                 'cashfree' => [
-                    'app_id'    => $this->config->getAppId()
+                    'app_id'    => $this->config->getAppId(),
+                    'title'     => $this->config->getTitle()
                 ],
             ],
         ];
