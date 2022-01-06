@@ -46,6 +46,7 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
         \Cashfree\Cfcheckout\Model\Config $config,
         \Magento\Framework\App\CacheInterface $cache,
         \Magento\Framework\App\Action\Context $context,
+        \Cashfree\Cfcheckout\Helper\Cfcheckout $helper,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
         \Cashfree\Cfcheckout\Model\PaymentMethod $paymentMethod
@@ -59,6 +60,7 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
 
         $this->logger           = $logger;
         $this->cache            = $cache;
+        $this->helper           = $helper;
         $this->config           = $config;
         $this->customerSession  = $customerSession;
         $this->paymentMethod    = $paymentMethod;
@@ -98,28 +100,15 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
 
             $validationSuccess = false;
         }
-
-        $getCustomentNumber = $this->getQuote()->getBillingAddress()->getTelephone();
-
-        $customerPhone = substr($getCustomentNumber, -10);
-
-        $mobileDigitsLength = strlen($customerPhone);
-
-        if ($mobileDigitsLength == 10) {
-            if (!preg_match("/^[6-9][0-9]{9}$/", $customerPhone)) {
-                $responseContent = [
-                    'message'   => "Customer phone number is not valid.",
-                    'parameters' => []
-                ];
-                $validationSuccess = false;
-              }
-        } else {
-            $responseContent = [
-                'message'   => "Customer phone number is not valid.",
-                'parameters' => []
-            ];
-
-            $validationSuccess = false;
+        $countryCode = "";
+        $countryId = $this->getQuote()->getShippingAddress()->getCountryId();
+        if(!empty($countryId)){
+            $countryCode = $this->helper->getPhoneCode($countryId);
+        }
+        $getCustomentNumber = $this->getQuote()->getShippingAddress()->getTelephone();
+        $customerNumber = preg_replace("/[^0-9]/", '', $getCustomentNumber);
+        if($countryCode != ""){
+            $customerNumber = "+".$countryCode.$customerNumber;
         }
 
         if(!$this->getQuote()->getIsVirtual())
@@ -163,7 +152,7 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
                 "customer_details" => array(
                     "customer_id" => "MagentoCustomer",
                     "customer_email" => $_POST['email'],
-                    "customer_phone"=> $customerPhone
+                    "customer_phone"=> $customerNumber
                 ),
                 "order_id" => $cashfreeOrderId,
                 "order_amount" => $amount,
