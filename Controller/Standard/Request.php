@@ -181,7 +181,8 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
                     "Content-Type: application/json",
                     "x-api-version: 2021-05-21",
                     "x-client-id: ".$this->config->getConfigData('app_id'),
-                    "x-client-secret: ".$this->config->getConfigData('secret_key')
+                    "x-client-secret: ".$this->config->getConfigData('secret_key'),
+                    "x-idempotency-key: ".$cashfreeOrderId
                 ],
             ]);
 

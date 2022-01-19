@@ -9,7 +9,7 @@
         </policy>
         <policy id="frame-src">
             <values>
-                <value id="cashfree_api" type="host">test.cashfree.com</value>
+                <value id="cashfree_api" type="host">sandbox.cashfree.com</value>
             </values>
         </policy>
     </policies>
