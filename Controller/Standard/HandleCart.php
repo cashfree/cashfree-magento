@@ -2,12 +2,11 @@
 
 namespace Cashfree\Cfcheckout\Controller\Standard;
 
-use Cashfree\Cfcheckout\Model\Config;
 use Magento\Framework\Controller\ResultFactory;
-use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 
-class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract
+class HandleCart extends \Cashfree\Cfcheckout\Controller\CfAbstract
 {
+
     /**
      * @var \Psr\Log\LoggerInterface 
      */
@@ -58,7 +57,7 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract
      * @var \Magento\Checkout\Model\Session
      */
     protected $checkoutSession;
-
+    
     /**
      * @var \Magento\Sales\Api\OrderRepositoryInterface
      */
@@ -69,7 +68,7 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract
      */
     protected $quoteRepository;
 
-     /**
+    /**
      * @param \Psr\Log\LoggerInterface $logger
      * @param \Cashfree\Cfcheckout\Model\Config $config
      * @param \Magento\Framework\App\Action\Context $context
@@ -111,67 +110,51 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract
             $orderSender,
             $invoiceSender
         );
+
+        $this->objectManagement = \Magento\Framework\App\ObjectManager::getInstance();
     }
 
-    /**
-     * Get order response from cashfree to complete order
-     * @return array
-     */
     public function execute()
     {
-        $order = $this->checkoutSession->getLastRealOrder();
+        $lastQuoteId = $this->checkoutSession->getLastQuoteId();
+        $lastOrderId = $this->checkoutSession->getLastRealOrder();
 
-        $code = 400;
+        if ($lastQuoteId && $lastOrderId) {
+            $orderModel = $this->objectManagement->get('Magento\Sales\Model\Order')->load($lastOrderId->getEntityId());
 
-        $request = $this->getRequest()->getParams();
-
-        $responseContent = [
-                'success'       => false,
-                'redirect_url'  => 'checkout/#payment',
-                'parameters'    => []
-            ];
-        
-        $transactionId = $request['additional_data']['cf_transaction_id'];
-        
-        if(empty($transactionId) === false && $request['additional_data']['cf_order_status'] === 'PAID')
-        {
-            $orderAmount = round($order->getGrandTotal(), 2);
-            
-            $orderId = $order->getIncrementId();
-
-            $validateOrder = $this->validateSignature($request, $order);
-
-            if(!empty($validateOrder['status']) && $validateOrder['status'] === true) {
-                $this->processPayment($request, $order);
-
+            if($orderModel->canCancel()) {
+               
+                $quote = $this->objectManagement->get('Magento\Quote\Model\Quote')->load($lastQuoteId);
+                $quote->setIsActive(true)->save();
+                 
+                //not canceling order as cancled order can't be used again for order processing.
+                //$orderModel->cancel(); 
+                $orderModel->setStatus('canceled');
+                $orderModel->save();
+                $this->checkoutSession->setFirstTimeChk('0');                
+                
                 $responseContent = [
                     'success'       => true,
-                    'redirect_url'  => 'checkout/onepage/success/',
-                    'order_id'      => $orderId,
+                    'redirect_url'  => 'checkout/#payment'
                 ];
-
-                $code = 200;
-            } else {
-                $responseContent['message'] = $validateOrder['errorMsg'];
             }
-
-            $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
-            $response->setData($responseContent);
-            $response->setHttpResponseCode($code);
-            return $response;
-        } else {
-            $responseContent['message'] = "Cashfree Payment details missing.";
+        }
+       
+        if (!$lastQuoteId || !$lastOrderId) {
+            $responseContent = [
+                'success'       => true,
+                'redirect_url'  => 'checkout/cart'
+            ];
         }
 
-        //update/disable the quote
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
-        $quote->setIsActive(true)->save();
-        $this->checkoutSession->setFirstTimeChk('0');
+        $this->messageManager->addError(__('Payment Failed or Payment closed'));
         
         $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
         $response->setData($responseContent);
-        $response->setHttpResponseCode($code);
+        $response->setHttpResponseCode(200);
+
         return $response;
+
     }
+
 }

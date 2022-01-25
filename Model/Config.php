@@ -7,13 +7,13 @@ use \Magento\Framework\App\Config\Storage\WriterInterface;
 
 class Config
 {
-    const KEY_ALLOW_SPECIFIC = 'allowspecific';
-    const KEY_SPECIFIC_COUNTRY = 'specificcountry';
-    const KEY_ACTIVE = 'active';
-    const KEY_PUBLIC_KEY = 'app_id';
-    const KEY_TITLE = 'title';
-    const PAYMENT_ENVIRONMENT = 'environment';
-    const NOTIFY_WAIT_TIME = 'notify_wait_time';
+    const KEY_ALLOW_SPECIFIC    = 'allowspecific';
+    const KEY_SPECIFIC_COUNTRY  = 'specificcountry';
+    const KEY_ACTIVE            = 'active';
+    const KEY_PUBLIC_KEY        = 'app_id';
+    const KEY_TITLE             = 'title';
+    const PAYMENT_ENVIRONMENT   = 'environment';
+    const KEY_NEW_ORDER_STATUS  = 'order_status';
 
     /**
      * @var string
@@ -25,6 +25,9 @@ class Config
      */
     protected $scopeConfig;
 
+    /**
+     * @var WriterInterface
+     */
     protected $configWriter;
 
     /**
@@ -37,10 +40,12 @@ class Config
      */
     public function __construct(
         ScopeConfigInterface $scopeConfig,
-        WriterInterface $configWriter
+        WriterInterface $configWriter,
+        \Cashfree\Cfcheckout\Helper\Cfcheckout $helper
     ) {
         $this->scopeConfig = $scopeConfig;
         $this->configWriter = $configWriter;
+        $this->helper           = $helper;
     }
 
     public function getAppId()
@@ -52,30 +57,16 @@ class Config
     {
         return $this->getConfigData(self::KEY_TITLE);
     }
-    
-    public function getPaymentEnvironment()
+
+    public function getNewOrderStatus()
     {
-        return $this->getConfigData(self::PAYMENT_ENVIRONMENT);
+        return $this->getConfigData(self::KEY_NEW_ORDER_STATUS);
     }
 
-    /**
-     * @param int $storeId
-     * @return $this
-     */
-    public function setStoreId($storeId)
-    {
-        $this->storeId = $storeId;
-        return $this;
+    public function getNotifyUrl() {
+        return $this->helper->getUrl($this->getConfigData('notify_url'),array('_secure'=>true));
     }
 
-    /**
-     * Retrieve information from payment configuration
-     *
-     * @param string $field
-     * @param null|string $storeId
-     *
-     * @return mixed
-     */
     public function getConfigData($field, $storeId = null)
     {
         if ($storeId == null) {
@@ -88,15 +79,6 @@ class Config
         return $this->scopeConfig->getValue($path, \Magento\Store\Model\ScopeInterface::SCOPE_STORE, $storeId);
     }
 
-    /**
-     * Set information from payment configuration
-     *
-     * @param string $field
-     * @param string $value
-     * @param null|string $storeId
-     *
-     * @return mixed
-     */
     public function setConfigData($field, $value)
     {
         $code = $this->methodCode;
@@ -106,20 +88,11 @@ class Config
         return $this->configWriter->save($path, $value);
     }
 
-    /**
-     * @return bool
-     */
     public function isActive()
     {
         return (bool) (int) $this->getConfigData(self::KEY_ACTIVE, $this->storeId);
     }
 
-    /**
-     * To check billing country is allowed for the payment method
-     *
-     * @param string $country
-     * @return bool
-     */
     public function canUseForCountry($country)
     {
         /*

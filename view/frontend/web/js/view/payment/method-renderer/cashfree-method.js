@@ -13,7 +13,7 @@ define(
         'Magento_Ui/js/model/messageList',
         'Magento_Checkout/js/model/shipping-save-processor'
     ],
-    function (Component, quote, $, ko, additionalValidators, setPaymentInformationAction, url, customer, placeOrderAction, fullScreenLoader, messageList, shippingSaveProcessor) {
+    function (Component, quote, $, ko, additionalValidators, setPaymentInformationAction, url, customer, placeOrderAction, fullScreenLoader, messageList) {
         'use strict';
 
         return Component.extend({
@@ -43,7 +43,7 @@ define(
             },
 
             getTitle: function() {
-                return 'Cashfree';
+                return window.checkoutConfig.payment.cashfree.title;
             },
 
             isActive: function() {
@@ -66,7 +66,9 @@ define(
 
             initObservable: function() {
                 var self = this._super();
+                
                 if(!self.cashfreeDataFrameLoaded) {
+                    
                     self.cashfreeDataFrameLoaded = true;
                 }
                 return self;
@@ -77,15 +79,77 @@ define(
             */
             /** Process Payment */
             preparePayment: function (context, event) {
-
                 if(!additionalValidators.validate()) {
                     return false;
                 }
 
-                var self = this,
-                    billing_address
-
                 fullScreenLoader.startLoader();
+                this.placeOrder(event);
+                return;
+            },
+
+            placeOrder: function (event) {
+                var self = this;
+
+                if (event) {
+                    event.preventDefault();
+                }
+
+                if(!self.orderId) {
+                    this.isPlaceOrderActionAllowed(false);
+                    this.getPlaceOrderDeferredObject()
+                        .fail(
+                            function () {
+                                self.isPlaceOrderActionAllowed(true);
+                            }
+                        ).done(
+                        function (orderId) {
+                            self.getCashfreeOrder(orderId);
+                            self.orderId = orderId;
+                        }
+                    );
+                }else{
+                    self.getCashfreeOrder(self.orderId);
+                }
+
+                return;
+
+            },
+
+            getCashfreeOrder: function (orderId) {
+                var self = this;
+
+                $.ajax({
+                    type: 'POST',
+                    url: url.build('cashfree/standard/request'),
+
+                    /**
+                     * Success callback
+                     * @param {Object} response
+                     */
+                    success: function (response) {
+                        fullScreenLoader.stopLoader();
+                        if (response.success) {
+                           self.doCheckoutPayment(response);
+                        } else {
+                            self.isPaymentProcessing.reject(response.message);
+                        }
+                    },
+
+                    /**
+                     * Error callback
+                     * @param {*} response
+                     */
+                    error: function (response) {
+                        fullScreenLoader.stopLoader();
+                        self.isPaymentProcessing.reject(response.message);
+                    }
+                });
+            },
+
+            doCheckoutPayment: function(cfResponse){
+                var self = this,
+                billing_address;
                 this.messageContainer.clear();
 
                 this.amount = quote.totals()['base_grand_total'];
@@ -99,87 +163,31 @@ define(
                 if (!customer.isLoggedIn()) {
                     this.user.email = quote.guestEmail;
                 }
-                else
+                else 
                 {
                     this.user.email = customer.customerData.email;
                 }
 
+                self.renderDropin(cfResponse);
+
                 this.isPaymentProcessing = $.Deferred();
 
-                $.when(this.isPaymentProcessing).done(
-                    function () {
-                        self.placeOrder();
-                    }
-                ).fail(
+                $.when(this.isPaymentProcessing).fail(
                     function (result) {
                         self.handleError(result);
                     }
                 );
 
-                self.getCfOrderToken();
-
                 return;
-            },
-            getCfOrderToken: function () {
-                var self = this;
-
-                //update shipping and billing before order into quotes
-                if(!quote.isVirtual()) {
-                    shippingSaveProcessor.saveShippingInformation().success(
-                        function (response) {
-                            self.createCashfreeOrder();
-                        }
-                    ).fail(
-                        function (response) {
-                            fullScreenLoader.stopLoader();
-                            self.isPaymentProcessing.reject(response.message);
-                        }
-                    );
-                } else {
-                    self.createCashfreeOrder();
-                }
 
             },
-            createCashfreeOrder: function(){
-                var self = this;
-                $.ajax({
-                    type: 'POST',
-                    url: url.build('cashfree/standard/request'),
-                    data: {
-                        email: this.user.email,
-                        billing_address: JSON.stringify(quote.billingAddress())
-                    },
 
-                    /**
-                     * Success callback
-                     * @param {Object} response
-                     */
-                    success: function (response) {
-                        fullScreenLoader.stopLoader();
-                        if (response.success) {
-                            self.renderIframe(response);
-                        } else {
-                            self.isPaymentProcessing.reject(response.message);
-                        }
-                    },
-
-
-                    /**
-                     * Error callback
-                     * @param {*} response
-                     */
-                    error: function (response) {
-                        fullScreenLoader.stopLoader();
-                        self.isPaymentProcessing.reject(response.message);
-                    }
-                });
-            },
-
-            renderIframe: function(data) {
+            renderDropin: async function(data) {
                 var self = this;
                 
                 const successCallback = function (data) {
                     self.cf_response = data;
+                    self.orderStatus = data.order.status;
                     self.handledSuccessCallback(data);
                 }
                 const failureCallback = function (data) {
@@ -190,9 +198,13 @@ define(
                         self.isPaymentProcessing.reject("Not a valid Cashfree Payments.");
                     }
                 }
-                const dismissCallback = function () {
-                    fullScreenLoader.stopLoader();
-                    self.isPaymentProcessing.reject("Payment Closed");
+                const dismissCallback = function (data) {
+                    if (self.orderStatus != 'PAID') {
+                        self.handleCart(data);
+                        fullScreenLoader.stopLoader();
+                        self.isPaymentProcessing.reject("Payment Closed");
+                        self.isPlaceOrderActionAllowed(true);
+                    }
                 }
                 let orderToken = "";
                 let env = data.environment;
@@ -201,31 +213,88 @@ define(
                     fullScreenLoader.stopLoader();
                     self.isPaymentProcessing.reject("Order token is not generated.");
                 }
-                    
                 Pippin(env, orderToken, successCallback, failureCallback, dismissCallback);
                 
             },
             handledSuccessCallback: function (data) {
                 var self = this;
+                if(self.successCalled){
+                    return;
+                }
+                self.successCalled = true;
+                fullScreenLoader.startLoader();
+                var postData = {
+                    "method": self.item.method,
+                    "po_number": null,
+                    "additional_data": {
+                        cf_transaction_id: data.transaction.transactionId,
+                        cf_order_id: data.transaction.orderId,
+                        cf_transaction_amount: data.transaction.transactionAmount,
+                        cf_order_status:data.order.status
+                    }
+                }
                 $.ajax({
                     type: 'POST',
                     url: url.build('cashfree/standard/response'),
-                    data: data,
+                    data: postData,
 
                     /**
                      * Success callback
                      * @param {Object} response
                      */
                     success: function (response) {
-                        //fullScreenLoader.stopLoader();
-                        if (response.success) {
-                            if(response.order_id){
-                                $(location).attr('href', 'onepage/success?' + Math.random().toString(36).substring(10));
-                            }else{
-                                setTimeout(function(){ self.handledSuccessCallback(data); }, 1500);
-                            }
+                        fullScreenLoader.stopLoader();
+                        require('Magento_Customer/js/customer-data').reload(['cart']);
+
+                        if (!response.success) {
+                            fullScreenLoader.stopLoader();
+                            self.isPaymentProcessing.reject(response.message);
+                            self.handleError(response);
+                            self.isPlaceOrderActionAllowed(true);
+                            self.successCalled = false;
+                        }
+
+                        window.location.replace(url.build(response.redirect_url));
+                    },
+
+                    /**
+                     * Error callback
+                     * @param {*} response
+                     */
+                    error: function (response) {
+                        fullScreenLoader.stopLoader();
+                        if(response.responseJSON && response.responseJSON.message) {
+                            self.isPaymentProcessing.reject(response.responseJSON.message);
                         } else {
-                            self.placeOrder(data);
+                            self.isPaymentProcessing.reject("Not a valid Cashfree Payments.");
+                        }
+                        self.isPlaceOrderActionAllowed(true);
+                    }
+                });
+            },
+
+            handleCart: function(data){
+                var self = this;
+                fullScreenLoader.startLoader();
+
+                $.ajax({
+                    type: 'POST',
+                    url: url.build('cashfree/standard/handleCart'),
+                    data: JSON.stringify(data),
+                    dataType: 'json',
+                    contentType: 'application/json',
+
+                    /**
+                     * Success callback
+                     * @param {Object} response
+                     */
+                    success: function (response) {
+                        fullScreenLoader.stopLoader();
+                        self.isPaymentProcessing.reject('order_failed');
+                        require('Magento_Customer/js/customer-data').reload(['cart']);
+
+                        if (response.success) {
+                            window.location.replace(url.build(response.redirect_url));
                         }
                     },
 
@@ -236,8 +305,10 @@ define(
                     error: function (response) {
                         fullScreenLoader.stopLoader();
                         self.isPaymentProcessing.reject(response.message);
+                        self.handleError(response);
                     }
                 });
+
             },
             
             getData: function() {
