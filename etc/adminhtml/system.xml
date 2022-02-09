@@ -7,7 +7,7 @@
                 <comment>
                     <![CDATA[<a href="https://merchant.cashfree.com/merchant/login" target="_blank">Get started with a Cashfree account</a>]]>
                 </comment>
-                <field id="active" translate="label" type="select" sortOrder="61"           showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="active" translate="label" type="select" sortOrder="61" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Enable Cashfree</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>

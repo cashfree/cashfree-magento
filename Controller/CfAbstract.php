@@ -248,7 +248,7 @@ abstract class CfAbstract extends \Magento\Framework\App\Action\Action
         $quote = $this->objectManagement->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
         $quote->setIsActive(false)->save();
 
-        if($order->canInvoice())
+        if($order->canInvoice() && $this->config->canSendInvoice())
         {
             $invoice = $this->invoiceService->prepareInvoice($order);
             $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);

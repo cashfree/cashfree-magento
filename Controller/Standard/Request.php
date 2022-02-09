@@ -210,7 +210,7 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
 
             if ($err) {
                 $responseContent = [
-                    'message'       => 'Unable to create your order. Please contact support. 1',
+                    'message'       => 'Unable to create your order. Please contact support.',
                     'parameters'    => []
                 ];
             }
@@ -234,7 +234,7 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
         
             } else {
                 $responseContent = [
-                    'message'       => 'Unable to create your order. Please contact support. 2',
+                    'message'       => 'Unable to create your order. Please contact support.',
                     'parameters'    => []
                 ];
             }

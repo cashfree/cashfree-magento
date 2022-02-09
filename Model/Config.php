@@ -14,6 +14,7 @@ class Config
     const KEY_TITLE             = 'title';
     const PAYMENT_ENVIRONMENT   = 'environment';
     const KEY_NEW_ORDER_STATUS  = 'order_status';
+    const KEY_ENABLE_INVOICE    = 'enable_invoice';
 
     /**
      * @var string
@@ -86,6 +87,14 @@ class Config
         $path = 'payment/' . $code . '/' . $field;
 
         return $this->configWriter->save($path, $value);
+    }
+
+    /**
+     * @return bool
+     */
+    public function canSendInvoice()
+    {
+        return (bool) (int) $this->getConfigData(self::KEY_ENABLE_INVOICE, $this->storeId);
     }
 
     public function isActive()
