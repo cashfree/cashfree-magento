@@ -28,7 +28,7 @@ class OrderIdentityPlugin
     public function aroundIsEnabled(\Magento\Sales\Model\Order\Email\Container\OrderIdentity $subject, callable $proceed)
     {
         $returnValue = $proceed();
-
+        
         $forceOrderMailSentOnSuccess = $this->checkoutSession->getCashfreeMailSentOnSuccess();
         
         if($forceOrderMailSentOnSuccess === true)
