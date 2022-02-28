@@ -228,7 +228,7 @@ define(
                     "po_number": null,
                     "additional_data": {
                         cf_transaction_id: data.transaction.transactionId,
-                        cf_order_id: data.transaction.orderId,
+                        cf_order_id: data.order.orderId,
                         cf_transaction_amount: data.transaction.transactionAmount,
                         cf_order_status:data.order.status
                     }
@@ -317,7 +317,7 @@ define(
                     "po_number": null,
                     "additional_data": {
                         cf_transaction_id: this.cf_response.transaction.transactionId,
-                        cf_order_id: this.cf_response.transaction.orderId,
+                        cf_order_id: this.cf_response.order.orderId,
                         cf_transaction_amount: this.cf_response.transaction.transactionAmount,
                         cf_order_status:this.cf_response.order.status
                     }
