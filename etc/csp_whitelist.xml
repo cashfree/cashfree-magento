@@ -12,5 +12,10 @@
                 <value id="cashfree_api" type="host">sandbox.cashfree.com</value>
             </values>
         </policy>
+        <policy id="img-src">
+            <values>
+                <value id="cashfree_logo" type="host">cashfreelogo.cashfree.com</value>
+            </values>
+        </policy>
     </policies>
 </csp_whitelist>

@@ -9,13 +9,13 @@
                 <active>0</active>
                 <prod_url>https://api.cashfree.com/pg/orders</prod_url>
                 <test_url>https://sandbox.cashfree.com/pg/orders</test_url>
-                <payment_action>authorize_capture</payment_action>
+                <payment_action>authorize</payment_action>
                 <app_id backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
                 <secret_key backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
                 <return_url>cashfree/standard/response</return_url>
                 <notify_url>cashfree/standard/notify</notify_url>
-                <notify_wait_time>300</notify_wait_time>
                 <order_status>processing</order_status>
+                <in_context>1</in_context>
             </cashfree>
         </payment>
     </default>
