@@ -2,8 +2,8 @@
 
 namespace Cashfree\Cfcheckout\Helper;
 
-use Magento\Framework\App\Helper\Context;
 use Magento\Sales\Model\Order;
+use Magento\Framework\App\Helper\Context;
 use Magento\Framework\App\Helper\AbstractHelper;
 
 class Cfcheckout extends AbstractHelper

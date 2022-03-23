@@ -2,7 +2,6 @@
 
 namespace Cashfree\Cfcheckout\Controller\Standard;
 
-use Cashfree\Cfcheckout\Model\PaymentMethod;
 use Magento\Framework\Controller\ResultFactory;
 
 /**
@@ -13,14 +12,51 @@ use Magento\Framework\Controller\ResultFactory;
 class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
 {
     /**
-     * @var \Magento\Framework\App\CacheInterface
-     */
-    protected $cache;
-
-    /**
-     * @var \Psr\Log\LoggerInterface
+     * @var \Psr\Log\LoggerInterface 
      */
     protected $logger;
+
+    /**
+     * @var \Cashfree\Cfcheckout\Model\Config
+     */
+    protected $config;
+
+    /**
+     * @var \Magento\Framework\App\Action\Context
+     */
+
+    protected $context;
+
+    /**
+     * @var \Cashfree\Cfcheckout\Helper\Cfcheckout
+     */
+
+    protected $helper;
+
+    /**
+     * @var \Magento\Framework\DB\Transaction
+     */
+    protected $transaction;
+
+    /**
+     * @var \Magento\Sales\Model\Service\InvoiceService
+     */
+    protected $invoiceService;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Email\Sender\OrderSender
+     */
+    protected $orderSender;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Email\Sender\InvoiceSender
+     */
+    protected $invoiceSender;
+
+    /**
+     * @var \Magento\Customer\Model\Session
+    */
+    protected $customerSession;
 
     /**
      * @var \Magento\Checkout\Model\Session
@@ -33,218 +69,174 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
     protected $orderRepository;
 
     /**
+     * @var \Magento\Quote\Api\CartRepositoryInterface
+     */
+    protected $quoteRepository;
+
+    /**
+     * @param \Psr\Log\LoggerInterface $logger
+     * @param \Cashfree\Cfcheckout\Model\Config $config
      * @param \Magento\Framework\App\Action\Context $context
+     * @param \Cashfree\Cfcheckout\Helper\Cfcheckout $helper
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Cashfree\Cfcheckout\Model\Config $config
-     * @param \Magento\Framework\App\CacheInterface $cache
+     * @param \Magento\Sales\Model\Service\InvoiceService $invoiceService
+     * @param \Magento\Quote\Api\CartRepositoryInterface $quoteRepository
      * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
-     * @param \Psr\Log\LoggerInterface $logger
+     * @param \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender
+     * @param \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender
      */
     public function __construct(
         \Psr\Log\LoggerInterface $logger,
         \Cashfree\Cfcheckout\Model\Config $config,
-        \Magento\Framework\App\CacheInterface $cache,
         \Magento\Framework\App\Action\Context $context,
         \Cashfree\Cfcheckout\Helper\Cfcheckout $helper,
+        \Magento\Framework\DB\Transaction $transaction,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Cashfree\Cfcheckout\Model\PaymentMethod $paymentMethod
+        \Magento\Sales\Model\Service\InvoiceService $invoiceService,
+        \Magento\Quote\Api\CartRepositoryInterface $quoteRepository,
+        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
+        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
+        \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender
     ) {
         parent::__construct(
+            $logger,
+            $config,
             $context,
+            $transaction,
             $customerSession,
             $checkoutSession,
-            $config
+            $invoiceService,
+            $quoteRepository,
+            $orderRepository,
+            $orderSender,
+            $invoiceSender
         );
 
-        $this->logger           = $logger;
-        $this->cache            = $cache;
-        $this->helper           = $helper;
-        $this->config           = $config;
-        $this->customerSession  = $customerSession;
-        $this->paymentMethod    = $paymentMethod;
-        $this->objectManagement = \Magento\Framework\App\ObjectManager::getInstance();
+        $this->helper   = $helper;
     }
 
     /**
-     * Get user token for process the payment
+     * Get order token for process the payment
      * @return array
      */
     public function execute()
     {
-        $quote_id = $this->getQuote()->getId();
+        $order = $this->checkoutSession->getLastRealOrder();
+        $cashfreeOrderId = $order->getIncrementId();
+        $new_order_status = $this->config->getNewOrderStatus();
+        $orderModel = $this->_objectManager->get('Magento\Sales\Model\Order')->load($order->getEntityId());
 
-        //validate shipping, billing and phone number
-        $validationSuccess =  true;
-        $code = 200;
-
-        if(empty($_POST['email']) === true)
-        {
-            $this->logger->info("Email field is required");
-
-            $responseContent = [
-                'message'   => "Email field is required",
-                'parameters' => []
-            ];
-
-            $validationSuccess = false;
-        }
-
-        if(empty($this->getQuote()->getBillingAddress()->getPostcode()) === true)
-        {
-            $responseContent = [
-                'message'   => "Billing Address is required",
-                'parameters' => []
-            ];
-
-            $validationSuccess = false;
-        }
+        $orderModel->setState('new')
+                   ->setStatus($new_order_status)
+                   ->save();
+        
+        $code = 400;
         $countryCode = "";
-        $countryId = $this->getQuote()->getShippingAddress()->getCountryId();
+        $countryId = $order->getShippingAddress()->getCountryId();
+
         if(!empty($countryId)){
             $countryCode = $this->helper->getPhoneCode($countryId);
         }
-        $getCustomentNumber = $this->getQuote()->getShippingAddress()->getTelephone();
+
+        $getCustomentNumber = $order->getShippingAddress()->getTelephone();
         $customerNumber = preg_replace("/[^0-9]/", '', $getCustomentNumber);
+
         if($countryCode != ""){
             $customerNumber = "+".$countryCode.$customerNumber;
         }
 
-        if(!$this->getQuote()->getIsVirtual())
+        $email = $order->getCustomerEmail();
+
+        if(isset($email) && !empty($email))
         {
-            //validate quote Shipping method
-            if(empty($this->getQuote()->getShippingAddress()->getShippingMethod()) === true)
-            {
-                $responseContent = [
-                    'message'   => "Shipping method is required",
-                    'parameters' => []
-                ];
-
-                $validationSuccess = false;
-            }
-
-            if(empty($this->getQuote()->getShippingAddress()->getPostcode()) === true)
-            {
-                $responseContent = [
-                    'message'   => "Shipping Address is required",
-                    'parameters' => []
-                ];
-
-                $validationSuccess = false;
-            }
-        }
-
-        if($validationSuccess)
-        {
-            $amount = round($this->getQuote()->getGrandTotal(), 2);
-
-            $cashfreeOrderId = $quote_id."_".time();
-
-            if (!$this->customerSession->isLoggedIn()) {
-                $this->getQuote()->setCustomerEmail($_POST['email']);
-                $this->getQuote()->save();
-            }
-
-            $this->customerSession->setCustomerEmailAddress($_POST['email']);
+            $amount = round($order->getGrandTotal(), 2);
 
             $params = array(
-                "customer_details" => array(
-                    "customer_id" => "MagentoCustomer",
-                    "customer_email" => $_POST['email'],
-                    "customer_phone"=> $customerNumber
+                "customer_details"      => array(
+                    "customer_id"       => "MagentoCustomer",
+                    "customer_email"    => $email,
+                    "customer_phone"    => $customerNumber
                 ),
-                "order_id" => $cashfreeOrderId,
-                "order_amount" => $amount,
-                "order_currency" => $this->getQuote()->getQuoteCurrencyCode(),
-                "order_note" => "Magento Order",
-                "order_meta"=> array(
-                    "notify_url" => $this->paymentMethod->getNotifyUrl()
+                "order_id"              => $cashfreeOrderId,
+                "order_amount"          => $amount,
+                "order_currency"        => $order->getOrderCurrencyCode(),
+                "order_note"            => "Magento Order",
+                "order_meta"            => array(
+                    "return_url"        => $this->config->getReturnUrl(),
+                    "notify_url"        => $this->config->getNotifyUrl()
                 )
             );
-
+        
             $curlPostfield = json_encode($params);
 
             $curl = curl_init();
 
             curl_setopt_array($curl, [
-                CURLOPT_URL => $this->getOrderUrl(),
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => "",
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 30,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => "POST",
-                CURLOPT_POSTFIELDS => $curlPostfield,
-                CURLOPT_HTTPHEADER => [
-                    "Accept: application/json",
-                    "Content-Type: application/json",
-                    "x-api-version: 2021-05-21",
-                    "x-client-id: ".$this->config->getConfigData('app_id'),
-                    "x-client-secret: ".$this->config->getConfigData('secret_key'),
+                CURLOPT_URL             => $this->getOrderUrl(),
+                CURLOPT_RETURNTRANSFER  => true,
+                CURLOPT_ENCODING        => "",
+                CURLOPT_MAXREDIRS       => 10,
+                CURLOPT_TIMEOUT         => 30,
+                CURLOPT_HTTP_VERSION    => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST   => "POST",
+                CURLOPT_POSTFIELDS      => $curlPostfield,
+                CURLOPT_HTTPHEADER      => [
+                    "Accept:            application/json",
+                    "Content-Type:      application/json",
+                    "x-api-version:     2021-05-21",
+                    "x-client-id:       ".$this->config->getConfigData('app_id'),
+                    "x-client-secret:   ".$this->config->getConfigData('secret_key'),
                     "x-idempotency-key: ".$cashfreeOrderId
                 ],
             ]);
 
             $response = curl_exec($curl);
+            
             $err = curl_error($curl);
 
             curl_close($curl);
 
             if ($err) {
                 $responseContent = [
-                    'message'   => 'Unable to create your order. Please contact support.',
-                    'parameters' => []
+                    'message'       => 'Unable to create your order. Please contact support.',
+                    'parameters'    => []
                 ];
             }
 
-            $order = json_decode($response);
-            if (null !== $order && !empty($order->order_token))
+            $cfOrder = json_decode($response);
+
+            if (null !== $cfOrder && !empty($cfOrder->order_token))
             {
+                $code = 200;
+
                 $responseContent = [
                     'success'           => true,
-                    'cashfree_order'    => $order->cf_order_id,
-                    'order_id'          => $quote_id,
-                    'order_token'       => $order->order_token,
-                    'amount'            => $order->order_amount,
-                    'quote_currency'    => $this->getQuote()->getQuoteCurrencyCode(),
-                    'quote_amount'      => number_format($this->getQuote()->getGrandTotal(), 2, ".", ""),
+                    'cashfree_order'    => $cfOrder->cf_order_id,
+                    'order_id'          => $cashfreeOrderId,
+                    'order_token'       => $cfOrder->order_token,
+                    'payment_link'       => $cfOrder->payment_link,
+                    'amount'            => $cfOrder->order_amount,
+                    'order_currency'    => $order->getOrderCurrencyCode(),
+                    'order_amount'      => $amount,
                     'environment'       => $this->config->getConfigData("environment"),
                 ];
-
-                $this->checkoutSession->setCashfreeOrderID($order->cf_order_id);
-                $this->checkoutSession->setCashfreeOrderAmount($amount);
-
-                //save to cashfree orderLink
-                $orderLinkCollection = $this->_objectManager->get('Cashfree\Cfcheckout\Model\OrderLink')
-                                                        ->getCollection()
-                                                        ->addFilter('quote_id', $quote_id)
-                                                        ->getFirstItem();
-
-                $orderLinkData = $orderLinkCollection->getData();
                 
-                if (empty($orderLinkData['entity_id']) === false)
-                {
-                    $orderLinkCollection->setCfOrderId($cashfreeOrderId)
-                                ->save();
-                }
-                else
-                {
-                    $orderLnik = $this->_objectManager->create('Cashfree\Cfcheckout\Model\OrderLink');
-                    $orderLnik->setQuoteId($quote_id)
-                                ->setCfOrderId($cashfreeOrderId)
-                                ->save();
-                }
-
+        
             } else {
                 $responseContent = [
-                    'message'   => 'Unable to create your order. Please contact support.',
-                    'parameters' => []
+                    'message'       => 'Unable to create your order. Please contact support.',
+                    'parameters'    => []
                 ];
             }
             
+        } else {
+            $responseContent = [
+                'message'       => 'Email is mandatory. Please add a valid email.',
+                'parameters'    => []
+            ];
         }
-        $this->cache->save("started", "quote_Front_processing_$quote_id", ["cashfree"], 300);
 
         $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
         $response->setData($responseContent);
@@ -252,22 +244,6 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
 
         return $response;
         
-    }
-
-    /**
-     * Get order url for order processing
-     * @return string
-     */
-    protected function getOrderUrl()
-    {
-        $environment = $this->config->getConfigData("environment");
-
-        $orderUrl = $this->config->getConfigData('test_url');
-
-        if ($environment === 'production') {
-            $orderUrl = $this->config->getConfigData('prod_url');
-        }
-        return $orderUrl;
     }
 
 }

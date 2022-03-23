@@ -5,8 +5,10 @@
  * See COPYING.txt for license details.
  */
 -->
-
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+	<type name="Magento\Sales\Model\Order\Email\Container\OrderIdentity">
+        <plugin name="change_is_enable_method" type="Cashfree\Cfcheckout\Plugin\Sales\Order\Email\Container\OrderIdentityPlugin" sortOrder="30" />
+    </type>
     <type name="Magento\Framework\App\Request\CsrfValidator">
         <plugin name="csrf_validator_skip" type="Cashfree\Cfcheckout\Plugin\CsrfValidatorSkip" />
     </type>
@@ -19,13 +21,7 @@
 	    </arguments>
 	</virtualType>
 
-	<type name="Cashfree\Cfcheckout\Controller\Standard\Response">
-	    <arguments>
-	        <argument name="logger" xsi:type="object">CashfreeLogger</argument>
-	    </arguments>
-	</type>
-
-	<type name="Cashfree\Cfcheckout\Controller\Standard\Request">
+	<type name="Cashfree\Cfcheckout\Controller\CfAbstract">
 	    <arguments>
 	        <argument name="logger" xsi:type="object">CashfreeLogger</argument>
 	    </arguments>

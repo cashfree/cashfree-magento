@@ -6,56 +6,64 @@ use Magento\Framework\Event\Observer;
 use Magento\Sales\Model\Order\Payment;
 use Cashfree\Cfcheckout\Model\PaymentMethod;
 use Magento\Framework\Event\ObserverInterface;
+use Magento\Sales\Api\OrderRepositoryInterface;
 
 /**
  * Class AfterPlaceOrderObserver
- * @package Cashfree\Cfcheckout\Observer
+ * @package PayU\PaymentGateway\Observer
  */
 class AfterPlaceOrderObserver implements ObserverInterface
 {
+
     /**
      * Store key
      */
     const STORE = 'store';
 
     /**
+     * @var OrderRepositoryInterface
+     */
+    private $orderRepository;
+
+    /**
+     * @var AfterPlaceOrderRepayEmailProcessor
+     */
+    private $emailProcessor;
+
+    /**
      * StatusAssignObserver constructor.
+     *
+     * @param OrderRepositoryInterface $orderRepository
+     * @param AfterPlaceOrderRepayEmailProcessor $emailProcessor
      */
     public function __construct(
+        OrderRepositoryInterface $orderRepository,
         \Cashfree\Cfcheckout\Model\Config $config,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Cashfree\Cfcheckout\Model\PaymentMethod $paymentMethod,
-        \Magento\Sales\Model\Service\InvoiceService $invoiceService,
-        \Magento\Framework\DB\Transaction $transaction
+        \Magento\Checkout\Model\Session $checkoutSession
     ) {
-        $this->config           = $config;
+        $this->orderRepository  = $orderRepository;
         $this->checkoutSession  = $checkoutSession;
-        $this->paymentMethod  = $paymentMethod;
-        $this->invoiceService   = $invoiceService;
-        $this->transaction      = $transaction;
+        $this->config           = $config;
     }
 
     /**
      * {@inheritdoc}
      */
     public function execute(Observer $observer)
-    {
-
-        $order = $observer->getOrder();
-
+    { 
         /** @var Payment $payment */
-        $payment = $order->getPayment();
+        $payment    = $observer->getData('payment');
 
         $pay_method = $payment->getMethodInstance();
 
-        $code = $pay_method->getCode();
+        $code       = $pay_method->getCode();
 
         if($code === PaymentMethod::METHOD_CODE)
         {
-            $this->updateOrderLinkStatus($payment);
-            
+            $this->assignStatus($payment);
+            $this->checkoutSession->setCashfreeMailSentOnSuccess(false);
         }
-    
+        
     }
 
     /**
@@ -63,63 +71,23 @@ class AfterPlaceOrderObserver implements ObserverInterface
      *
      * @return void
      */
-    private function updateOrderLinkStatus(Payment $payment)
+    private function assignStatus(Payment $payment)
     {
         $order = $payment->getOrder();
+
+        $new_order_status = $this->config->getNewOrderStatus();
+
+        $order->setState('new')
+              ->setStatus($new_order_status);
+
+        $this->orderRepository->save($order);
 
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 
         $lastQuoteId = $order->getQuoteId();
-        
-        $cfTransactionId  = $payment->getLastTransId();
-
-        if(empty($cfTransactionId) === false)
-        {
-            //get cashfree orderLink
-            $orderLinkCollection = $objectManager->get('Cashfree\Cfcheckout\Model\OrderLink')
-                                                       ->getCollection()
-                                                       ->addFieldToSelect('entity_id')
-                                                       ->addFieldToSelect('order_placed')
-                                                       ->addFilter('quote_id', $lastQuoteId)
-                                                       ->addFilter('cf_reference_id', $cfTransactionId)
-                                                       ->addFilter('increment_order_id', $order->getRealOrderId())
-                                                       ->getFirstItem();
-
-            $orderLink = $orderLinkCollection->getData();
-
-            if (empty($orderLink['entity_id']) === false and !$orderLink['order_placed'])
-            {
-
-                $order->addStatusHistoryComment(
-                            __('Order has been successfuly paid by cashfree.')
-                        );
-                $order->save();
-
-                //update quote
-                $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($lastQuoteId);
-                $quote->setIsActive(false)->save();
-                $this->checkoutSession->replaceQuote($quote);
-
-                //update cashfree orderLink
-                $orderLinkCollection->setOrderId($order->getEntityId())
-                                    ->setOrderPlaced(true)
-                                    ->save();
-            }
-        }
+        $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($lastQuoteId);
+        $quote->setIsActive(true)->save();
+        $this->checkoutSession->replaceQuote($quote);
     }
 
-    public function generateInvoice($order)
-    {
-        $invoice = $this->invoiceService->prepareInvoice($order);
-        $invoice->register();
-        $invoice->save();
-        $transactionSave = $this->transaction->addObject(
-                $invoice
-            )->addObject(
-                $invoice->getOrder()
-            );
-            $transactionSave->save();
-            $order->setIsCustomerNotified(true)
-            ->save();
-    }
 }

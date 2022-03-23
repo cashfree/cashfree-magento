@@ -3,8 +3,6 @@
 namespace Cashfree\Cfcheckout\Model;
 
 use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
-use Monolog\Formatter\LineFormatter;
 use Magento\Framework\Filesystem\DriverInterface;
 /**
  *  Used to display webhook url link

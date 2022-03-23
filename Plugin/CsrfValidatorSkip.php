@@ -14,7 +14,7 @@ class CsrfValidatorSkip
         \Closure $proceed,
         $request,
         $action
-    ) { 
+    ) {
         if ($request->getModuleName() == 'cashfree') {
             return; // Skip CSRF check
         }
