@@ -2,16 +2,12 @@
 
 namespace Cashfree\Cfcheckout\Controller\Standard;
 
-use Magento\Framework\App\RequestInterface;
-use Magento\Framework\App\CsrfAwareActionInterface;
-use Magento\Framework\App\Request\InvalidRequestException;
-
 /**
  * Class Notify
  * To notify customer when if there is any netword falure during payment
  * @package Cashfree\Cfcheckout\Controller\Standard\Notify
  */
-class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract implements CsrfAwareActionInterface
+class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract
 {
     /**
      * @var \Psr\Log\LoggerInterface 
@@ -111,23 +107,6 @@ class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract implements CsrfA
             $invoiceSender
         );
 
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function createCsrfValidationException(
-        RequestInterface $request
-    ): ?InvalidRequestException {
-        return true;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function validateForCsrf(RequestInterface $request): ?bool
-    {
-        return true;
     }
     
     /**
