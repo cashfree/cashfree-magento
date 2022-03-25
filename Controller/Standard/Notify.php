@@ -144,32 +144,40 @@ class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract implements CsrfA
 
         $transactionId  = $request['referenceId'];
 
-        if(!empty($validateOrder['status']) && $validateOrder['status'] === true) {
-            if($request['txStatus'] == 'SUCCESS') {
-                $request['additional_data']['cf_transaction_id'] = $transactionId;
-                $this->logger->info("Cashfree Notify processing started for cashfree transaction_id(:$transactionId)");
-                $this->processPayment($transactionId, $order);
-                $this->logger->info("Cashfree Notify processing complete for cashfree transaction_id(:$transactionId)");
-                return;
-            } elseif($request['txStatus'] == 'FAILED' || $request['txStatus'] == 'CANCELLED') {
-                $orderStatus = self::STATE_CANCELED;
-                $this->processWebhookStatus($orderStatus, $order);
-                $this->logger->info("Cashfree Notify change magento order status to (:$orderStatus) cashfree transaction_id(:$transactionId)");
-                return;
-            } elseif($request['txStatus'] == 'USER_DROPPED') {
-                $orderStatus = self::STATE_CLOSED;
-                $this->processWebhookStatus($orderStatus, $order);
-                $this->logger->info("Cashfree Notify change magento order status to (:$orderStatus) cashfree transaction_id(:$transactionId)");
-                return;
+        $mageOrderStatus = $order->getStatus();
+
+        if($mageOrderStatus === 'pending') {
+
+            if(!empty($validateOrder['status']) && $validateOrder['status'] === true) {
+                if($request['txStatus'] == 'SUCCESS') {
+                    $request['additional_data']['cf_transaction_id'] = $transactionId;
+                    $this->logger->info("Cashfree Notify processing started for cashfree transaction_id(:$transactionId)");
+                    $this->processPayment($transactionId, $order);
+                    $this->logger->info("Cashfree Notify processing complete for cashfree transaction_id(:$transactionId)");
+                    return;
+                } elseif($request['txStatus'] == 'FAILED' || $request['txStatus'] == 'CANCELLED') {
+                    $orderStatus = self::STATE_CANCELED;
+                    $this->processWebhookStatus($orderStatus, $order);
+                    $this->logger->info("Cashfree Notify change magento order status to (:$orderStatus) cashfree transaction_id(:$transactionId)");
+                    return;
+                } elseif($request['txStatus'] == 'USER_DROPPED') {
+                    $orderStatus = self::STATE_CLOSED;
+                    $this->processWebhookStatus($orderStatus, $order);
+                    $this->logger->info("Cashfree Notify change magento order status to (:$orderStatus) cashfree transaction_id(:$transactionId)");
+                    return;
+                } else {
+                    $orderStatus = self::STATE_PENDING_PAYMENT;
+                    $this->processWebhookStatus($orderStatus, $order);
+                    $this->logger->info("Cashfree Notify change magento order status to (:$orderStatus) cashfree transaction_id(:$transactionId)");
+                    return;
+                }
             } else {
-                $orderStatus = self::STATE_PENDING_PAYMENT;
-                $this->processWebhookStatus($orderStatus, $order);
-                $this->logger->info("Cashfree Notify change magento order status to (:$orderStatus) cashfree transaction_id(:$transactionId)");
+                $errorMsg = $validateOrder['errorMsg'];
+                $this->logger->info("Cashfree Notify processing payment for cashfree transaction_id(:$transactionId) is failed due to ERROR(: $errorMsg)");
                 return;
             }
         } else {
-            $errorMsg = $validateOrder['errorMsg'];
-            $this->logger->info("Cashfree Notify processing payment for cashfree transaction_id(:$transactionId) is failed due to ERROR(: $errorMsg)");
+            $this->logger->info("Order has been already in processing state for cashfree transaction_id(:$transactionId)");
             return;
         }
     }
