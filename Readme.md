@@ -1,6 +1,6 @@
-### Install through "code.zip" file
+### Install through "code-2.3.x.zip" file
 
-Extract the attached code.zip from release
+Extract the attached code-2.3.x.zip from release
 
 Go to "app" folder
 
@@ -24,5 +24,5 @@ Go to Admin -> Stores -> Configuration -> Sales -> Payment Method -> Cashfree to
 Please try clearing your Magento Cache from your admin panel (System -> Cache Management) if you are experiencing any issues.
 
 ### Note:
-- This installation work only in Magento 2.x.
-- For Magento 1.9 please download `master-1.9` branch
+- Refer [master](https://github.com/cashfree/cashfree-magento) for magento 2.3.x and latest version.
+- For Magento 2.2.x and lower version, please download [magento-2.2.x](https://github.com/cashfree/cashfree-magento/tree/magento-2.2.x) branch

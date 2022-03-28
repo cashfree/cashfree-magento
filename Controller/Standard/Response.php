@@ -126,7 +126,10 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract
             $order = $this->orderFactory->create()->loadByIncrementId($orderIncrementId);
             $validateOrder = $this->checkRedirectOrderStatus($orderIncrementId, $order);
             if ($validateOrder['status'] == "SUCCESS") {
-                $this->processPayment($validateOrder['transaction_id'], $order);
+                $mageOrderStatus = $order->getStatus();
+                if($mageOrderStatus === 'pending') {
+                    $this->processPayment($validateOrder['transaction_id'], $order);
+                }
                 $this->messageManager->addSuccess(__('Your payment was successful'));
                 $resultRedirect->setPath('checkout/onepage/success');
                 return $resultRedirect;
@@ -163,7 +166,10 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract
                 $orderId = $order->getIncrementId();
                 $validateOrder = $this->validateSignature($request, $order);
                 if(!empty($validateOrder['status']) && $validateOrder['status'] === true) {
-                    $this->processPayment($transactionId, $order);
+                    $mageOrderStatus = $order->getStatus();
+                    if($mageOrderStatus === 'pending') {
+                        $this->processPayment($transactionId, $order);
+                    }
 
                     $responseContent = [
                         'success'       => true,

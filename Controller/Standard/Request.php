@@ -134,13 +134,19 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
         
         $code = 400;
         $countryCode = "";
-        $countryId = $order->getShippingAddress()->getCountryId();
+        if(empty($order->getShippingAddress())) {
+            $countryId = $order->getBillingAddress()->getCountryId();
+            $getCustomentNumber = $order->getBillingAddress()->getTelephone();
+        } else {
+            $countryId = $order->getShippingAddress()->getCountryId();
+            $getCustomentNumber = $order->getShippingAddress()->getTelephone();
+        }
 
-        if(!empty($countryId)){
+        if(isset($countryId) && !empty($countryId)){
             $countryCode = $this->helper->getPhoneCode($countryId);
         }
 
-        $getCustomentNumber = $order->getShippingAddress()->getTelephone();
+        
         $customerNumber = preg_replace("/[^0-9]/", '', $getCustomentNumber);
 
         if($countryCode != ""){
