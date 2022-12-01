@@ -109,7 +109,7 @@ const Pippin = async function (env, token, successcb, failurecb, dcb) {
         },
     });
     const dropinConfig = {
-        components: ["order-details", "upi", "card", "app", "netbanking"],
+        components: ["order-details", "upi", "card", "app", "netbanking", "creditcardemi", "cardlessemi"],
         orderToken: token,
         onSuccess: (data) => {
             modalx.close();
