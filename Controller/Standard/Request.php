@@ -127,7 +127,8 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
         $cashfreeOrderId = $order->getIncrementId();
         $new_order_status = $this->config->getNewOrderStatus();
 
-        $magento_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
+        $mage_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
+        $magento_version = substr_replace($mage_version,"x",4);
         $module_version =  $this->_objectManager->get('Magento\Framework\Module\ModuleList')->getOne('Cashfree_Cfcheckout')['setup_version'];
         
         $orderModel = $this->_objectManager->get('Magento\Sales\Model\Order')->load($order->getEntityId());
