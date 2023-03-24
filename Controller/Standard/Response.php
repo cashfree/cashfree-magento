@@ -120,7 +120,7 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract
             'parameters'    => []
         ];
 
-        if(empty($request['cf_id']) === false && empty($request['cf_token'] === false)) {
+        if(empty($request['cf_id']) === false) {
             $resultRedirect = $this->resultRedirectFactory->create();
             $orderIncrementId = $request['cf_id'];
             $order = $this->orderFactory->create()->loadByIncrementId($orderIncrementId);

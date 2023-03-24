@@ -279,7 +279,7 @@ abstract class CfAbstract extends \Magento\Framework\App\Action\Action
         if (null !== $cfOrder && !empty($cfOrder[0]->payment_status))
         {
             $cfOrderStatus          = $cfOrder[0]->payment_status;
-            $cfOrderAmount          = $cfOrder[0]->payment_amount;
+            $cfOrderAmount          = $cfOrder[0]->order_amount;
             $transaction_message    = $cfOrder[0]->payment_message;
             if($cfOrderStatus === 'SUCCESS') {
                 if($orderAmount === $cfOrderAmount) {

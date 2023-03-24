@@ -67,7 +67,7 @@ class Config
 
     public function getReturnUrl() {
         $baseUrl = $this->helper->getUrl($this->getConfigData('return_url'),array('_secure'=>true));
-        $returnUrl = $baseUrl."?cf_id={order_id}&cf_token={order_token}";
+        $returnUrl = $baseUrl."?cf_id={order_id}";
         return $returnUrl;
     }
 

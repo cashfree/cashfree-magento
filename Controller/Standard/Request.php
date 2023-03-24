@@ -126,6 +126,11 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
         $order = $this->checkoutSession->getLastRealOrder();
         $cashfreeOrderId = $order->getIncrementId();
         $new_order_status = $this->config->getNewOrderStatus();
+
+        $mage_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
+        $magento_version = substr_replace($mage_version,"x",4);
+        $module_version =  $this->_objectManager->get('Magento\Framework\Module\ModuleList')->getOne('Cashfree_Cfcheckout')['setup_version'];
+        
         $orderModel = $this->_objectManager->get('Magento\Sales\Model\Order')->load($order->getEntityId());
 
         $orderModel->setState('new')
@@ -174,7 +179,7 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
                     "notify_url"        => $this->config->getNotifyUrl()
                 )
             );
-        
+
             $curlPostfield = json_encode($params);
 
             $curl = curl_init();
@@ -191,7 +196,7 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
                 CURLOPT_HTTPHEADER      => [
                     "Accept:            application/json",
                     "Content-Type:      application/json",
-                    "x-api-version:     2021-05-21",
+                    "x-api-version:     2022-09-01",
                     "x-client-id:       ".$this->config->getConfigData('app_id'),
                     "x-client-secret:   ".$this->config->getConfigData('secret_key'),
                     "x-idempotency-key: ".$cashfreeOrderId
@@ -213,23 +218,52 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
 
             $cfOrder = json_decode($response);
 
-            if (null !== $cfOrder && !empty($cfOrder->order_token))
+            if (null !== $cfOrder && !empty($cfOrder->payment_session_id))
             {
+                
+                $curl = curl_init();
+
+                curl_setopt_array($curl, [
+                    CURLOPT_URL             => $this->getOrderUrl()."/".$cfOrder->order_id,
+                    CURLOPT_RETURNTRANSFER  => true,
+                    CURLOPT_ENCODING        => "",
+                    CURLOPT_MAXREDIRS       => 10,
+                    CURLOPT_TIMEOUT         => 30,
+                    CURLOPT_HTTP_VERSION    => CURL_HTTP_VERSION_1_1,
+                    CURLOPT_CUSTOMREQUEST   => "GET",
+                    CURLOPT_POSTFIELDS      => $curlPostfield,
+                    CURLOPT_HTTPHEADER      => [
+                        "Accept:            application/json",
+                        "Content-Type:      application/json",
+                        "x-api-version:     2021-05-21",
+                        "x-client-id:       ".$this->config->getConfigData('app_id'),
+                        "x-client-secret:   ".$this->config->getConfigData('secret_key'),
+                    ],
+                ]);
+
+                $getOrderResponse = curl_exec($curl);
+                
+                $err = curl_error($curl);
+
+                curl_close($curl);
+
+                $getOrder = json_decode($getOrderResponse);
+                
                 $code = 200;
 
                 $responseContent = [
                     'success'           => true,
                     'cashfree_order'    => $cfOrder->cf_order_id,
                     'order_id'          => $cashfreeOrderId,
-                    'order_token'       => $cfOrder->order_token,
-                    'payment_link'       => $cfOrder->payment_link,
+                    'order_token'       => $cfOrder->payment_session_id,
+                    'payment_link'      => $getOrder->payment_link,
                     'amount'            => $cfOrder->order_amount,
                     'order_currency'    => $order->getOrderCurrencyCode(),
                     'order_amount'      => $amount,
                     'environment'       => $this->config->getConfigData("environment"),
+                    'magento_version'   => $magento_version,
+                    'module_version'    => $module_version,
                 ];
-                
-        
             } else {
                 $responseContent = [
                     'message'       => 'Unable to create your order. Please contact support.',
