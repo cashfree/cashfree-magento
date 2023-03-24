@@ -50,12 +50,12 @@ const Pippin = async function (env, token, successcb, failurecb, dcb) {
     let preent = "old";
     if (env == "production") {
         preent = await this.replaceJS(
-            "https://sdk.cashfree.com/js/magento/1.0.26/dropinClient.prod.js?v=" +
+            "https://sdk.cashfree.com/js/magento/2.0.0/dropinClient.prod.js?v=" +
                 Date.now()
         );
     } else {
         preent = await this.replaceJS(
-            "https://sdk.cashfree.com/js/magento/1.0.26/dropinClient.sandbox.js?v=" +
+            "https://sdk.cashfree.com/js/magento/2.0.0/dropinClient.sandbox.js?v=" +
                 Date.now()
         );
     }
@@ -109,7 +109,7 @@ const Pippin = async function (env, token, successcb, failurecb, dcb) {
         },
     });
     const dropinConfig = {
-        components: ["order-details", "upi", "card", "app", "netbanking", "creditcardemi", "cardlessemi"],
+        components: ["order-details", "upi", "card", "app", "netbanking", "creditcardemi", "cardlessemi", "debitcardemi"],
         orderToken: token,
         onSuccess: (data) => {
             modalx.close();
@@ -119,14 +119,15 @@ const Pippin = async function (env, token, successcb, failurecb, dcb) {
             modalx.close();
             this.failurecb(data);
         },
+        pluginName: Pippin.pluginName,
     };
 
     modalx.setStyle({
         backgroundColor: "#fff",
     });
     modalx.open(this.this_ID_IN);
-	let cashfree_var = new window.Cashfree.Cashfree();
-    cashfree_var.initialiseDropin(
+	let cashfree_var = new window.Cashfree.Cashfree(token);
+    cashfree_var.drop(
         document.getElementById(this.this_ID_IN),
         dropinConfig
     );
@@ -307,6 +308,7 @@ Pippin.Laugh = (function () {
                     if (this.get("__active") || this.get("__tid") !== null) {
                         return;
                     }
+                    document.body.style.overflow = 'hidden';
                     const { contents } = this.refs;
                     const active = this.get("__items")[id];
                     contents.appendChild(active);
@@ -317,6 +319,12 @@ Pippin.Laugh = (function () {
                 close() {
                     const { contents } = this.refs;
                     const { __active } = this.get();
+                    //IE < 9 does not support removeProperty
+                    if (document.body.style.removeProperty) {
+                        document.body.style.removeProperty('overflow');
+                    } else {
+                        document.body.style.removeAttribute('overflow');
+                    }
                     this.set({
                         __active: null,
                         __tid: setTimeout(() => {
@@ -382,12 +390,12 @@ Pippin.Laugh = (function () {
         var style = createElement("style");
         if (Pippin.isMobile()) {
             style.textContent =
-                "\n  [svelte-2241516264].cover, [svelte-2241516264] .cover {\n    position: fixed;\n    left: 0;\n    top: 0;\n    width: 100%;\n    height: 100%;\n    z-index: -1;\n    -webkit-transition: .6s cubic-bezier(0.86, 0, 0.07, 1);\n    transition: .6s cubic-bezier(0.86, 0, 0.07, 1);\n    opacity: 0;\n  }\n\n  [svelte-2241516264].container, [svelte-2241516264] .container { \n position: fixed;\n    z-index: 4;\n    right: 50%;\n    bottom: 0;\n    -webkit-transform: translateX(50%);\n            transform: translateX(50%);\n    width: " +
+                "\n  [svelte-2241516264].cover, [svelte-2241516264] .cover {\n    position: fixed;\n    left: 0;\n    top: 0;\n    width: 100%;\n    height: 100%;\n    z-index: -1;\n    -webkit-transition: .6s cubic-bezier(0.86, 0, 0.07, 1);\n    transition: .6s cubic-bezier(0.86, 0, 0.07, 1);\n    opacity: 0;\n  }\n\n  [svelte-2241516264].container, [svelte-2241516264] .container { \n position: fixed;\n    z-index: 40000;\n    right: 50%;\n    bottom: 0;\n    -webkit-transform: translateX(50%);\n            transform: translateX(50%);\n    width: " +
                 "100%" +
                 ";\n    \n    overflow: hidden;\n    -webkit-transition: .6s cubic-bezier(0.86, 0, 0.07, 1);\n    transition: .6s cubic-bezier(0.86, 0, 0.07, 1);\n  }\n\n  [svelte-2241516264].box, [svelte-2241516264] .box {\n  -webkit-transition: .4s cubic-bezier(0.86, 0, 0.07, 1);\n    transition: .4s cubic-bezier(0.86, 0, 0.07, 1);\n    position: absolute;\n    right: 50%;\n    bottom: 0;\n    -webkit-transform: translateX(50%);\n            transform: translateX(50%);\n    -webkit-transition-property: height;\n    transition-property: height;\n  }\n\n  [svelte-2241516264].contents, [svelte-2241516264] .contents {\n    padding: 0em;\n    box-sizing: border-box;\n    -webkit-transition: .4s cubic-bezier(0.86, 0, 0.07, 1);\n    transition: .4s cubic-bezier(0.86, 0, 0.07, 1);\n    overflow: auto;\n    height: 100%;\n  }\n\n  [svelte-2241516264].decorate, [svelte-2241516264] .decorate {\n    position: absolute;\n    height: 1em;\n    width: 1em;\n  }\n  [svelte-2241516264].decorate.left-bottom, [svelte-2241516264] .decorate.left-bottom {\n    left: -.72em;\n    bottom: 0;\n  }\n  [svelte-2241516264].decorate.right-bottom, [svelte-2241516264] .decorate.right-bottom {\n    right: -.72em;\n    bottom: 0;\n    -webkit-transform: rotateY(180deg);\n            transform: rotateY(180deg);\n  }\n";
         } else {
             style.textContent =
-                "\n  [svelte-2241516264].cover, [svelte-2241516264] .cover {\n    position: fixed;\n    left: 0;\n    top: 0;\n    width: 100%;\n    height: 100%;\n    z-index: -1;\n    -webkit-transition: .6s cubic-bezier(0.86, 0, 0.07, 1);\n    transition: .6s cubic-bezier(0.86, 0, 0.07, 1);\n    opacity: 0;\n  }\n\n  [svelte-2241516264].container, [svelte-2241516264] .container {\n    position: fixed;\n    z-index: 4;\n    left: 50%;\n    top: 50%;\n    -webkit-transform: translate(-50%, -50%);\n      border-radius: 6px;\n      transform: translate(-50%, -50%);\n    width: " +
+                "\n  [svelte-2241516264].cover, [svelte-2241516264] .cover {\n    position: fixed;\n    left: 0;\n    top: 0;\n    width: 100%;\n    height: 100%;\n    z-index: -1;\n    -webkit-transition: .6s cubic-bezier(0.86, 0, 0.07, 1);\n    transition: .6s cubic-bezier(0.86, 0, 0.07, 1);\n    opacity: 0;\n  }\n\n  [svelte-2241516264].container, [svelte-2241516264] .container {\n    position: fixed;\n    z-index: 40000;\n    left: 50%;\n    top: 50%;\n    -webkit-transform: translate(-50%, -50%);\n      border-radius: 6px;\n      transform: translate(-50%, -50%);\n    width: " +
                 "420px" +
                 ";\n    \n    overflow: hidden;\n    -webkit-transition: .6s cubic-bezier(0.86, 0, 0.07, 1);\n    transition: .6s cubic-bezier(0.86, 0, 0.07, 1);\n  }\n\n  [svelte-2241516264].box, [svelte-2241516264] .box {\n    -webkit-transition: .4s cubic-bezier(0.86, 0, 0.07, 1);\n    transition: .4s cubic-bezier(0.86, 0, 0.07, 1);\n    position: absolute;\n    left: 50%;\n    top: 50%;\n    -webkit-transform: translate(-50%, -50%);\n            transform: translate(-50%, -50%);\n    -webkit-transition-property: height;\n    transition-property: height;\n  }\n\n  [svelte-2241516264].contents, [svelte-2241516264] .contents {\n    padding: 0em;\n    box-sizing: border-box;\n    -webkit-transition: .4s cubic-bezier(0.86, 0, 0.07, 1);\n    transition: .4s cubic-bezier(0.86, 0, 0.07, 1);\n    overflow: auto;\n    height: 100%;\n  }\n\n  [svelte-2241516264].decorate, [svelte-2241516264] .decorate {\n    position: absolute;\n    height: 1em;\n    width: 1em;\n  }\n  [svelte-2241516264].decorate.left-bottom, [svelte-2241516264] .decorate.left-bottom {\n    left: -.72em;\n    bottom: 0;\n  }\n  [svelte-2241516264].decorate.right-bottom, [svelte-2241516264] .decorate.right-bottom {\n    right: -.72em;\n    bottom: 0;\n    -webkit-transform: rotateY(180deg);\n            transform: rotateY(180deg);\n  }\n";
         }
@@ -543,7 +551,7 @@ Pippin.Laugh = (function () {
                     ";\n    transition-delay: " +
                     (root.__active ? "" : ".1s") +
                     ";\n    z-index: " +
-                    (root.__active ? 1 : -1) +
+                    (root.__active ? 10000 : -1) +
                     ";\n    background-color: " +
                     root.style.coverBackgroundColor +
                     ";\n  ";
@@ -827,4 +835,8 @@ Pippin.isMobile = function() {
 }
 Pippin.dismissCallback = function(){
 	return true;
+}
+
+Pippin.setOrderMetaPlatform = function(orderMeta) {
+    Pippin.pluginName = orderMeta;
 }

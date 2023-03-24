@@ -213,6 +213,7 @@ define(
                     fullScreenLoader.stopLoader();
                     self.isPaymentProcessing.reject("Order token is not generated.");
                 }
+                Pippin.setOrderMetaPlatform("jsmg-d-" + data.module_version + "-" + data.magento_version);
                 Pippin(env, orderToken, successCallback, failureCallback, dismissCallback);
                 
             },
