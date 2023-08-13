@@ -53,6 +53,11 @@
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/cashfree/enable_invoice</config_path>
                 </field>
+                <field id="order_id_replacement_char" translate="label" type="select" sortOrder="65" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Order ID Replacement Character</label>
+                    <source_model>Cashfree\Cfcheckout\Model\OrderIdChar</source_model>
+                    <config_path>payment/cashfree/order_id_replacement_char</config_path>
+                </field>
                 <field id="sort_order" translate="label" type="text" sortOrder="71" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Sort Order</label>
                     <config_path>payment/cashfree/sort_order</config_path>
