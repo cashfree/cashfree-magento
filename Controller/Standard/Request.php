@@ -124,7 +124,7 @@ class Request extends \Cashfree\Cfcheckout\Controller\CfAbstract
     public function execute()
     {
         $order = $this->checkoutSession->getLastRealOrder();
-        $cashfreeOrderId = $order->getIncrementId();
+        $cashfreeOrderId = preg_replace("/[^a-zA-Z0-9_-]/", $this->config->getConfigData('order_id_replacement_char') ?? '-', $order->getIncrementId());
         $new_order_status = $this->config->getNewOrderStatus();
 
         $mage_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
