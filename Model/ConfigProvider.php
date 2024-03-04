@@ -13,15 +13,15 @@ class ConfigProvider implements ConfigProviderInterface
     protected $methodCode = PaymentMethod::METHOD_CODE;
 
     /**
-     * @var \Cashfree\Cfcheckout\Model\Config
+     * @var Config
      */
     protected $config;
 
     /**
-     * @param \Cashfree\Cfcheckout\Model\Config
+     * @param Config
      */
     public function __construct(
-        \Cashfree\Cfcheckout\Model\Config $config
+        Config $config
     ) {
         $this->config = $config;
     }
@@ -38,7 +38,6 @@ class ConfigProvider implements ConfigProviderInterface
         $config = [
             'payment' => [
                 'cashfree' => [
-                    'in_context'    => $this->config->getInContext(),
                     'title'         => $this->config->getTitle()
                 ],
             ],

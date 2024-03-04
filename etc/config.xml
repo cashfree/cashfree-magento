@@ -15,7 +15,6 @@
                 <return_url>cashfree/standard/response</return_url>
                 <notify_url>cashfree/standard/notify</notify_url>
                 <order_status>processing</order_status>
-                <in_context>1</in_context>
             </cashfree>
         </payment>
     </default>

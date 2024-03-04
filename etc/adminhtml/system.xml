@@ -57,11 +57,6 @@
                     <label>Sort Order</label>
                     <config_path>payment/cashfree/sort_order</config_path>
                 </field>
-                <field id="in_context" translate="label" type="select" sortOrder="72" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>In-Context Checkout</label>
-                    <comment>Checkout flow that keeps customers local to your website.</comment>
-                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                </field>
             </group>
         </section>
     </system>
