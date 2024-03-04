@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace Cashfree\Cfcheckout\Model;
 
@@ -13,11 +13,11 @@ class PaymentAction implements ArrayInterface
     {
         return [
             [
-                'value' => \Cashfree\Cfcheckout\Model\PaymentMethod::ACTION_AUTHORIZE,
+                'value' => PaymentMethod::ACTION_AUTHORIZE,
                 'label' => __('Authorize Only'),
             ],
             [
-                'value' => \Cashfree\Cfcheckout\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE,
+                'value' => PaymentMethod::ACTION_AUTHORIZE_CAPTURE,
                 'label' => __('Authorize and Capture')
             ]
         ];

@@ -2,12 +2,21 @@
 
 namespace Cashfree\Cfcheckout\Model;
 
+use Magento\Framework\Api\AttributeValueFactory;
+use Magento\Framework\Api\ExtensionAttributesFactory;
+use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Data\Collection\AbstractDb;
+use Magento\Framework\Model\Context;
+use Magento\Framework\Model\ResourceModel\AbstractResource;
+use Magento\Framework\Registry;
+use Magento\Payment\Helper\Data;
 use Magento\Payment\Model\InfoInterface;
+use Magento\Payment\Model\Method\AbstractMethod;
+use Magento\Payment\Model\Method\Logger;
 
-class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod {
+class PaymentMethod extends AbstractMethod {
 
     const METHOD_CODE       = 'cashfree';
-    const ACTION_PROCESSING = 'processing';
 
     protected $_code = self::METHOD_CODE;
 
@@ -42,38 +51,38 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod {
     protected $requestMaskedFields      = null;
 
      /**
-     * @var \Cashfree\Cfcheckout\Model\Config
+     * @var Config
      */
     protected $config;
 
     /**
-     * 
+     *
+     * @param Registry $registry
+     * @param Config $config
+     * @param Context $context
+     * @param Data $paymentData
+     * @param Logger $logger
+     * @param ScopeConfigInterface $scopeConfig
+     * @param ExtensionAttributesFactory $extensionFactory
+     * @param AttributeValueFactory $customAttributeFactory
+     * @param AbstractResource|null $resource
+     * @param AbstractDb|null $resourceCollection
      * @param array $data
-     * @param \Magento\Framework\Registry $registry
-     * @param \Magento\Framework\Model\Context $context
-     * @param \Cashfree\Cfcheckout\Model\Config $config
-     * @param \Magento\Payment\Helper\Data $paymentData
-     * @param \Magento\Payment\Model\Method\Logger $logger
-     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
-     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
-     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
-     * @param \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory
-     * @param \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
 
       public function __construct(
-        \Magento\Framework\Registry $registry,
-        \Cashfree\Cfcheckout\Model\Config $config,
-        \Magento\Framework\Model\Context $context,
-        \Magento\Payment\Helper\Data $paymentData,
-        \Magento\Payment\Model\Method\Logger $logger,
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory,
-        \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory,
-        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
-        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
-        array $data = []
+          Registry                   $registry,
+          Config                     $config,
+          Context                    $context,
+          Data                       $paymentData,
+          Logger                     $logger,
+          ScopeConfigInterface       $scopeConfig,
+          ExtensionAttributesFactory $extensionFactory,
+          AttributeValueFactory      $customAttributeFactory,
+          AbstractResource           $resource = null,
+          AbstractDb                 $resourceCollection = null,
+          array                      $data = []
     ) {
         $this->config   = $config;
 
@@ -91,6 +100,11 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod {
         );
     }
 
+    /**
+     * @param InfoInterface $payment
+     * @param $amount
+     * @return $this|PaymentMethod
+     */
     public function capture(InfoInterface $payment, $amount)
     {
        return $this;

@@ -2,7 +2,9 @@
 
 namespace Cashfree\Cfcheckout\Helper;
 
-use Magento\Sales\Model\Order;
+use Magento\Checkout\Model\Session;
+use Magento\Quote\Model\Quote;
+use Magento\Quote\Model\QuoteManagement;
 use Magento\Framework\App\Helper\Context;
 use Magento\Framework\App\Helper\AbstractHelper;
 
@@ -11,7 +13,7 @@ class Cfcheckout extends AbstractHelper
     protected $quote;
     protected $session;
     protected $quoteManagement;
-    
+
     /**
      * Initialise helper function for checkout
      *
@@ -19,16 +21,16 @@ class Cfcheckout extends AbstractHelper
      */
     public function __construct(
         Context $context,
-        \Magento\Quote\Model\Quote $quote,
-        \Magento\Checkout\Model\Session $session,
-        \Magento\Quote\Model\QuoteManagement $quoteManagement
+        Quote $quote,
+        Session $session,
+        QuoteManagement $quoteManagement
     ) {
         $this->session          = $session;
         $this->quote            = $quote;
         $this->quoteManagement  = $quoteManagement;
         parent::__construct($context);
     }
-    
+
     /**
      * getUrl
      *
@@ -277,7 +279,7 @@ class Cfcheckout extends AbstractHelper
         );
 
         $key = array_search($code,$countrycode);
-        
+
         return $key;
     }
 

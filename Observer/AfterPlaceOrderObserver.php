@@ -2,6 +2,9 @@
 
 namespace Cashfree\Cfcheckout\Observer;
 
+use Cashfree\Cfcheckout\Model\Config;
+use Magento\Checkout\Model\Session;
+use Magento\Framework\App\ObjectManager;
 use Magento\Framework\Event\Observer;
 use Magento\Sales\Model\Order\Payment;
 use Cashfree\Cfcheckout\Model\PaymentMethod;
@@ -38,8 +41,8 @@ class AfterPlaceOrderObserver implements ObserverInterface
      */
     public function __construct(
         OrderRepositoryInterface $orderRepository,
-        \Cashfree\Cfcheckout\Model\Config $config,
-        \Magento\Checkout\Model\Session $checkoutSession
+        Config $config,
+        Session $checkoutSession
     ) {
         $this->orderRepository  = $orderRepository;
         $this->checkoutSession  = $checkoutSession;
@@ -50,7 +53,7 @@ class AfterPlaceOrderObserver implements ObserverInterface
      * {@inheritdoc}
      */
     public function execute(Observer $observer)
-    { 
+    {
         /** @var Payment $payment */
         $payment    = $observer->getData('payment');
 
@@ -63,7 +66,7 @@ class AfterPlaceOrderObserver implements ObserverInterface
             $this->assignStatus($payment);
             $this->checkoutSession->setCashfreeMailSentOnSuccess(false);
         }
-        
+
     }
 
     /**
@@ -82,7 +85,7 @@ class AfterPlaceOrderObserver implements ObserverInterface
 
         $this->orderRepository->save($order);
 
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $objectManager = ObjectManager::getInstance();
 
         $lastQuoteId = $order->getQuoteId();
         $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($lastQuoteId);

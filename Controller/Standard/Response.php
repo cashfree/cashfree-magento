@@ -2,48 +2,62 @@
 
 namespace Cashfree\Cfcheckout\Controller\Standard;
 
-use Magento\Framework\Controller\ResultFactory;
+use Cashfree\Cfcheckout\Controller\CfAbstract;
+use Cashfree\Cfcheckout\Helper\Cfcheckout;
+use Cashfree\Cfcheckout\Model\Config;
+use Exception;
+use Magento\Customer\Model\Session;
+use Magento\Framework\App\Action\Context;
+use Magento\Framework\Controller\Result\Redirect;
+use Magento\Framework\DB\Transaction;
+use Magento\Quote\Api\CartRepositoryInterface;
+use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Sales\Model\Order\Email\Sender\InvoiceSender;
+use Magento\Sales\Model\Order\Email\Sender\OrderSender;
+use Magento\Sales\Model\OrderFactory;
+use Magento\Sales\Model\Service\InvoiceService;
+use Psr\Log\LoggerInterface;
 
-class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract
+class Response extends CfAbstract
 {
     /**
-     * @var \Psr\Log\LoggerInterface 
+     * @var LoggerInterface
      */
     protected $logger;
 
     /**
-     * @var \Cashfree\Cfcheckout\Model\Config
+     * @var Config
      */
     protected $config;
 
     /**
-     * @var \Magento\Framework\App\Action\Context
+     * @var Context
      */
 
     protected $context;
 
     /**
-     * @var \Magento\Framework\DB\Transaction
+     * @var Transaction
      */
     protected $transaction;
 
     /**
-     * @var \Magento\Sales\Model\Service\InvoiceService
+     * @var InvoiceService
      */
     protected $invoiceService;
 
     /**
-     * @var \Magento\Sales\Model\Order\Email\Sender\OrderSender
+     * @var OrderSender
      */
     protected $orderSender;
 
     /**
-     * @var \Magento\Sales\Model\Order\Email\Sender\InvoiceSender
+     * @var InvoiceSender
      */
     protected $invoiceSender;
 
     /**
-     * @var \Magento\Customer\Model\Session
+     * @var Session
     */
     protected $customerSession;
 
@@ -53,49 +67,50 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract
     protected $checkoutSession;
 
     /**
-     * @var \Magento\Sales\Api\OrderRepositoryInterface
+     * @var OrderRepositoryInterface
      */
     protected $orderRepository;
 
     /**
-     * @var \Magento\Quote\Api\CartRepositoryInterface
+     * @var CartRepositoryInterface
      */
     protected $quoteRepository;
+    /**
+     * @var OrderFactory
+     */
+    private $orderFactory;
 
-     /**
-     * @param \Psr\Log\LoggerInterface $logger
-     * @param \Cashfree\Cfcheckout\Model\Config $config
-     * @param \Magento\Framework\App\Action\Context $context
-     * @param \Magento\Framework\DB\Transaction $transaction
-     * @param \Magento\Customer\Model\Session $customerSession
+    /**
+     * @param LoggerInterface $logger
+     * @param Config $config
+     * @param Context $context
+     * @param Transaction $transaction
      * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Sales\Model\Service\InvoiceService $invoiceService
-     * @param \Magento\Quote\Api\CartRepositoryInterface $quoteRepository
-     * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
-     * @param \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender
-     * @param \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender
+     * @param InvoiceService $invoiceService
+     * @param CartRepositoryInterface $quoteRepository
+     * @param OrderRepositoryInterface $orderRepository
+     * @param OrderSender $orderSender
+     * @param InvoiceSender $invoiceSender
      */
     public function __construct(
-        \Psr\Log\LoggerInterface $logger,
-        \Cashfree\Cfcheckout\Model\Config $config,
-        \Magento\Framework\App\Action\Context $context,
-        \Magento\Framework\DB\Transaction $transaction,
-        \Magento\Sales\Model\OrderFactory $orderFactory,
-        \Magento\Customer\Model\Session $customerSession,
+        LoggerInterface $logger,
+        Config $config,
+        Context $context,
+        Transaction $transaction,
+        OrderFactory $orderFactory,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Cashfree\Cfcheckout\Helper\Cfcheckout $checkoutHelper,
-        \Magento\Sales\Model\Service\InvoiceService $invoiceService,
-        \Magento\Quote\Api\CartRepositoryInterface $quoteRepository,
-        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
-        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
-        \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender
+        Cfcheckout $checkoutHelper,
+        InvoiceService $invoiceService,
+        CartRepositoryInterface $quoteRepository,
+        OrderRepositoryInterface $orderRepository,
+        OrderSender $orderSender,
+        InvoiceSender $invoiceSender
     ) {
         parent::__construct(
             $logger,
             $config,
             $context,
             $transaction,
-            $customerSession,
             $checkoutSession,
             $invoiceService,
             $quoteRepository,
@@ -104,102 +119,53 @@ class Response extends \Cashfree\Cfcheckout\Controller\CfAbstract
             $invoiceSender
         );
         $this->orderFactory     = $orderFactory;
-        $this->checkoutHelper   = $checkoutHelper;
     }
 
     /**
      * Get order response from cashfree to complete order
-     * @return array
+     * @return Redirect
+     * @throws Exception
      */
     public function execute()
     {
         $request = $this->getRequest()->getParams();
-        $responseContent = [
-            'success'       => false,
-            'redirect_url'  => 'checkout/#payment',
-            'parameters'    => []
-        ];
-
-        if(empty($request['cf_id']) === false) {
-            $resultRedirect = $this->resultRedirectFactory->create();
-            $orderIncrementId = $request['cf_id'];
-            $order = $this->orderFactory->create()->loadByIncrementId($orderIncrementId);
-            $validateOrder = $this->checkRedirectOrderStatus($orderIncrementId, $order);
-            if ($validateOrder['status'] == "SUCCESS") {
-                $mageOrderStatus = $order->getStatus();
-                if($mageOrderStatus === 'pending') {
-                    $this->processPayment($validateOrder['transaction_id'], $order);
-                }
-                $this->messageManager->addSuccess(__('Your payment was successful'));
-                $resultRedirect->setPath('checkout/onepage/success');
-                return $resultRedirect;
-
-            } else if ($validateOrder['status'] == "CANCELLED") {
-                $this->messageManager->addWarning(__('Your payment was cancel'));
-                $this->checkoutSession->restoreQuote();
-                $resultRedirect->setPath('checkout/cart');
-                return $resultRedirect;
-            } else if ($validateOrder['status'] == "FAILED") {
-                $this->messageManager->addErrorMessage(__('Your payment was failed'));
-                $order->cancel()->save();
-                $resultRedirect->setPath('checkout/onepage/failure');
-                return $resultRedirect;
-            } else if($validateOrder['status'] == "PENDING"){
-                $this->checkoutSession->restoreQuote();
-                $this->messageManager->addWarning(__('Your payment is pending'));
-                $resultRedirect->setPath('checkout/cart');
-                return $resultRedirect;
-            } else{
-                $this->checkoutSession->restoreQuote();
-                $this->messageManager->addErrorMessage(__('There is an error. Payment status is pending'));
-                $resultRedirect->setPath('checkout/cart');
-                return $resultRedirect;
+        $resultRedirect = $this->resultRedirectFactory->create();
+        $orderIncrementId = $request['cf_id'];
+        $order = $this->orderFactory->create()->loadByIncrementId($orderIncrementId);
+        $validateOrder = $this->checkRedirectOrderStatus($orderIncrementId, $order);
+        if ($validateOrder['status'] == "SUCCESS") {
+            $mageOrderStatus = $order->getStatus();
+            if($mageOrderStatus === 'pending') {
+                $this->processPayment($validateOrder['transaction_id'], $order);
             }
-        } else {
-            $order = $this->checkoutSession->getLastRealOrder();
-            $code = 400;
-            
-            $transactionId = $request['additional_data']['cf_transaction_id'];
-            
-            if(empty($transactionId) === false && $request['additional_data']['cf_order_status'] === 'PAID')
-            {
-                $orderId = $order->getIncrementId();
-                $validateOrder = $this->validateSignature($request, $order);
-                if(!empty($validateOrder['status']) && $validateOrder['status'] === true) {
-                    $mageOrderStatus = $order->getStatus();
-                    if($mageOrderStatus === 'pending') {
-                        $this->processPayment($transactionId, $order);
-                    }
+            $this->messageManager->addSuccess(__('Your payment was successful'));
+            $resultRedirect->setPath('checkout/onepage/success');
+            return $resultRedirect;
 
-                    $responseContent = [
-                        'success'       => true,
-                        'redirect_url'  => 'checkout/onepage/success/',
-                        'order_id'      => $orderId,
-                    ];
-
-                    $code = 200;
-                } else {
-                    $responseContent['message'] = $validateOrder['errorMsg'];
-                }
-
-                $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
-                $response->setData($responseContent);
-                $response->setHttpResponseCode($code);
-                return $response;
-            } else {
-                $responseContent['message'] = "Cashfree Payment details missing.";
-            }
+        } else if ($validateOrder['status'] == "CANCELLED") {
+            $this->messageManager->addWarning(__('Your payment was cancel'));
+            $this->checkoutSession->restoreQuote();
+            $resultRedirect->setPath('checkout/cart');
+            return $resultRedirect;
+        } else if ($validateOrder['status'] == "FAILED") {
+            $this->messageManager->addErrorMessage(__('Your payment was failed'));
+            $order->cancel();
+            $order->save();
+            $order->setState(CfAbstract::STATE_CANCELED)->setStatus(CfAbstract::STATE_CANCELED);
+            $order->save();
+            $resultRedirect->setPath('checkout/onepage/failure');
+            return $resultRedirect;
+        } else if($validateOrder['status'] == "PENDING"){
+            $this->checkoutSession->restoreQuote();
+            $this->messageManager->addWarning(__('Your payment is pending'));
+            $resultRedirect->setPath('checkout/cart');
+            return $resultRedirect;
+        } else{
+            $this->checkoutSession->restoreQuote();
+            $this->messageManager->addErrorMessage(__('There is an error. Payment status is pending'));
+            $resultRedirect->setPath('checkout/cart');
+            return $resultRedirect;
         }
 
-        //update/disable the quote
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
-        $quote->setIsActive(true)->save();
-        $this->checkoutSession->setFirstTimeChk('0');
-        
-        $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
-        $response->setData($responseContent);
-        $response->setHttpResponseCode($code);
-        return $response;
     }
 }

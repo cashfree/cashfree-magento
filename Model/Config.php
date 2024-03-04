@@ -2,20 +2,23 @@
 
 namespace Cashfree\Cfcheckout\Model;
 
+use Cashfree\Cfcheckout\Helper\Cfcheckout;
 use \Magento\Framework\App\Config\ScopeConfigInterface;
 use \Magento\Framework\App\Config\Storage\WriterInterface;
+use Magento\Store\Model\ScopeInterface;
 
 class Config
 {
     const KEY_ALLOW_SPECIFIC    = 'allowspecific';
     const KEY_SPECIFIC_COUNTRY  = 'specificcountry';
     const KEY_ACTIVE            = 'active';
-    const KEY_PUBLIC_KEY        = 'app_id';
+    const KEY_APP_ID            = 'app_id';
+    const KEY_SECRET_ID         = 'secret_key';
     const KEY_TITLE             = 'title';
-    const PAYMENT_ENVIRONMENT   = 'environment';
     const KEY_NEW_ORDER_STATUS  = 'order_status';
     const KEY_ENABLE_INVOICE    = 'enable_invoice';
-    const KEY_IN_CONTEXT        = 'in_context';
+    const  KEY_ENVIRONMENT      = "environment";
+    const KEY_PAYMENT_ACTION    = "payment_action";
 
     /**
      * @var string
@@ -36,14 +39,20 @@ class Config
      * @var int
      */
     protected $storeId = null;
+    /**
+     * @var Cfcheckout
+     */
+    private $helper;
 
     /**
      * @param ScopeConfigInterface $scopeConfig
+     * @param WriterInterface $configWriter
+     * @param Cfcheckout $helper
      */
     public function __construct(
         ScopeConfigInterface $scopeConfig,
         WriterInterface $configWriter,
-        \Cashfree\Cfcheckout\Helper\Cfcheckout $helper
+        Cfcheckout $helper
     ) {
         $this->scopeConfig = $scopeConfig;
         $this->configWriter = $configWriter;
@@ -52,7 +61,12 @@ class Config
 
     public function getAppId()
     {
-        return $this->getConfigData(self::KEY_PUBLIC_KEY);
+        return $this->getConfigData(self::KEY_APP_ID);
+    }
+
+    public function getSecretKey()
+    {
+        return $this->getConfigData(self::KEY_SECRET_ID);
     }
 
     public function getTitle()
@@ -60,33 +74,37 @@ class Config
         return $this->getConfigData(self::KEY_TITLE);
     }
 
+    public function getCfEnvironment()
+    {
+        return $this->getConfigData(self::KEY_ENVIRONMENT);
+    }
+
     public function getNewOrderStatus()
     {
         return $this->getConfigData(self::KEY_NEW_ORDER_STATUS);
     }
 
+    /**
+     * @return string
+     */
     public function getReturnUrl() {
         $baseUrl = $this->helper->getUrl($this->getConfigData('return_url'),array('_secure'=>true));
         $returnUrl = $baseUrl."?cf_id={order_id}";
         return $returnUrl;
     }
 
+    /**
+     * @return null
+     */
     public function getNotifyUrl() {
         return $this->helper->getUrl($this->getConfigData('notify_url'),array('_secure'=>true));
     }
 
     /**
-     * Check if in-context checkout is enabled.
-     *
-     * @param int|null $storeId
-     *
-     * @return bool
+     * @param $field
+     * @param $storeId
+     * @return mixed
      */
-    public function getInContext($storeId = null)
-    {
-        return (bool) $this->getConfigData(self::KEY_IN_CONTEXT, $storeId);
-    }
-
     public function getConfigData($field, $storeId = null)
     {
         if ($storeId == null) {
@@ -96,9 +114,14 @@ class Config
         $code = $this->methodCode;
 
         $path = 'payment/' . $code . '/' . $field;
-        return $this->scopeConfig->getValue($path, \Magento\Store\Model\ScopeInterface::SCOPE_STORE, $storeId);
+        return $this->scopeConfig->getValue($path, ScopeInterface::SCOPE_STORE, $storeId);
     }
 
+    /**
+     * @param $field
+     * @param $value
+     * @return null
+     */
     public function setConfigData($field, $value)
     {
         $code = $this->methodCode;
@@ -116,11 +139,18 @@ class Config
         return (bool) (int) $this->getConfigData(self::KEY_ENABLE_INVOICE, $this->storeId);
     }
 
+    /**
+     * @return bool
+     */
     public function isActive()
     {
         return (bool) (int) $this->getConfigData(self::KEY_ACTIVE, $this->storeId);
     }
 
+    /**
+     * @param $country
+     * @return bool
+     */
     public function canUseForCountry($country)
     {
         /*
@@ -134,5 +164,10 @@ class Config
         }
 
         return true;
+    }
+
+    public function getPaymentAction()
+    {
+        return $this->getConfigData(self::KEY_PAYMENT_ACTION);
     }
 }

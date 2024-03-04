@@ -2,107 +2,107 @@
 
 namespace Cashfree\Cfcheckout\Controller\Standard;
 
+use Cashfree\Cfcheckout\Controller\CfAbstract;
+use Cashfree\Cfcheckout\Model\Config;
+use Magento\Checkout\Model\Session;
+use Magento\Framework\App\Action\Context;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
+use Magento\Framework\DB\Transaction;
+use Magento\Quote\Api\CartRepositoryInterface;
+use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Sales\Model\Order\Email\Sender\InvoiceSender;
+use Magento\Sales\Model\Order\Email\Sender\OrderSender;
+use Magento\Sales\Model\Service\InvoiceService;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class Notify
- * To notify customer when if there is any netword falure during payment
+ * To notify customer when if there is any network failure during payment
  * @package Cashfree\Cfcheckout\Controller\Standard\Notify
  */
-class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract implements CsrfAwareActionInterface
+class Notify extends CfAbstract implements CsrfAwareActionInterface
 {
-    /**
-     * @var \Psr\Log\LoggerInterface 
-     */
     protected $logger;
 
     /**
-     * @var \Cashfree\Cfcheckout\Model\Config
+     * @var Config
      */
     protected $config;
 
     /**
-     * @var \Magento\Framework\App\Action\Context
+     * @var Context
      */
 
     protected $context;
 
     /**
-     * @var \Magento\Framework\DB\Transaction
+     * @var Transaction
      */
     protected $transaction;
 
     /**
-     * @var \Magento\Sales\Model\Service\InvoiceService
+     * @var InvoiceService
      */
     protected $invoiceService;
 
     /**
-     * @var \Magento\Sales\Model\Order\Email\Sender\OrderSender
+     * @var OrderSender
      */
     protected $orderSender;
 
     /**
-     * @var \Magento\Sales\Model\Order\Email\Sender\InvoiceSender
+     * @var InvoiceSender
      */
     protected $invoiceSender;
 
     /**
-     * @var \Magento\Customer\Model\Session
-    */
-    protected $customerSession;
-
-    /**
-     * @var \Magento\Checkout\Model\Session
+     * @var Session
      */
     protected $checkoutSession;
 
     /**
-     * @var \Magento\Sales\Api\OrderRepositoryInterface
+     * @var OrderRepositoryInterface
      */
     protected $orderRepository;
 
     /**
-     * @var \Magento\Quote\Api\CartRepositoryInterface
+     * @var CartRepositoryInterface
      */
     protected $quoteRepository;
 
     /**
-     * @param \Psr\Log\LoggerInterface $logger
-     * @param \Cashfree\Cfcheckout\Model\Config $config
-     * @param \Magento\Framework\App\Action\Context $context
-     * @param \Magento\Framework\DB\Transaction $transaction
-     * @param \Magento\Customer\Model\Session $customerSession
-     * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Sales\Model\Service\InvoiceService $invoiceService
-     * @param \Magento\Quote\Api\CartRepositoryInterface $quoteRepository
-     * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
-     * @param \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender
-     * @param \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender
+     * @param LoggerInterface $logger
+     * @param Config $config
+     * @param Context $context
+     * @param Transaction $transaction
+     * @param Session $checkoutSession
+     * @param InvoiceService $invoiceService
+     * @param CartRepositoryInterface $quoteRepository
+     * @param OrderRepositoryInterface $orderRepository
+     * @param OrderSender $orderSender
+     * @param InvoiceSender $invoiceSender
      */
 
     public function __construct(
         \Psr\Log\LoggerInterface $logger,
-        \Cashfree\Cfcheckout\Model\Config $config,
-        \Magento\Framework\App\Action\Context $context,
-        \Magento\Framework\DB\Transaction $transaction,
-        \Magento\Customer\Model\Session $customerSession,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Sales\Model\Service\InvoiceService $invoiceService,
-        \Magento\Quote\Api\CartRepositoryInterface $quoteRepository,
-        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
-        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
-        \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender
-    ) 
+        Config                   $config,
+        Context                  $context,
+        Transaction              $transaction,
+        Session                  $checkoutSession,
+        InvoiceService           $invoiceService,
+        CartRepositoryInterface  $quoteRepository,
+        OrderRepositoryInterface $orderRepository,
+        OrderSender              $orderSender,
+        InvoiceSender            $invoiceSender
+    )
     {
         parent::__construct(
             $logger,
             $config,
             $context,
             $transaction,
-            $customerSession,
             $checkoutSession,
             $invoiceService,
             $quoteRepository,
@@ -129,7 +129,7 @@ class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract implements CsrfA
     {
         return true;
     }
-    
+
     /**
      * Execute webhook in case of network failure
      *
@@ -137,7 +137,7 @@ class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract implements CsrfA
      */
     public function execute() {
         $request = $this->getRequest()->getParams();
-        
+
         $order_id = strip_tags($request["orderId"]);
         $order = $this->objectManagement->create('Magento\Sales\Model\Order')->loadByIncrementId($order_id);
         $validateOrder = $this->validateWebhook($request, $order);
@@ -150,7 +150,6 @@ class Notify extends \Cashfree\Cfcheckout\Controller\CfAbstract implements CsrfA
 
             if(!empty($validateOrder['status']) && $validateOrder['status'] === true) {
                 if($request['txStatus'] == 'SUCCESS') {
-                    $request['additional_data']['cf_transaction_id'] = $transactionId;
                     $this->logger->info("Cashfree Notify processing started for cashfree transaction_id(:$transactionId)");
                     $this->processPayment($transactionId, $order);
                     $this->logger->info("Cashfree Notify processing complete for cashfree transaction_id(:$transactionId)");
