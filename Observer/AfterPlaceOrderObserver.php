@@ -22,23 +22,21 @@ class AfterPlaceOrderObserver implements ObserverInterface
      * Store key
      */
     const STORE = 'store';
-
     /**
      * @var OrderRepositoryInterface
      */
-    private $orderRepository;
+    protected $orderRepository;
 
     /**
-     * @var AfterPlaceOrderRepayEmailProcessor
+     * @var Session
      */
-    private $emailProcessor;
+    protected $checkoutSession;
 
     /**
-     * StatusAssignObserver constructor.
-     *
-     * @param OrderRepositoryInterface $orderRepository
-     * @param AfterPlaceOrderRepayEmailProcessor $emailProcessor
+     * @var Config
      */
+    protected $config;
+
     public function __construct(
         OrderRepositoryInterface $orderRepository,
         Config $config,
@@ -81,7 +79,7 @@ class AfterPlaceOrderObserver implements ObserverInterface
         $new_order_status = $this->config->getNewOrderStatus();
 
         $order->setState('new')
-              ->setStatus($new_order_status);
+            ->setStatus($new_order_status);
 
         $this->orderRepository->save($order);
 
