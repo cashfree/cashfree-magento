@@ -17,7 +17,7 @@
       "docs": "https://docs.cashfree.com/docs/"
     },
     "type": "magento2-module",
-    "version": "3.3.0",
+    "version": "3.3.1",
     "license": [
         "MIT"
     ],
