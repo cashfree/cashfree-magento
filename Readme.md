@@ -1,53 +1,54 @@
 
 ![GitHub](https://img.shields.io/github/license/cashfree/cashfree-magento) ![Discord](https://img.shields.io/discord/931125665669972018?label=discord) ![GitHub last commit (branch)](https://img.shields.io/github/last-commit/cashfree/cashfree-magento/master) ![GitHub release (with filter)](https://img.shields.io/github/v/release/cashfree/cashfree-magento?label=latest) ![GitHub forks](https://img.shields.io/github/forks/cashfree/cashfree-magento)  ![GitHub Repo stars](https://img.shields.io/github/stars/cashfree/cashfree-magento)
 
+## Installation
 
+1. Download the `code.zip` file from the latest [release](https://github.com/cashfree/cashfree-magento/releases).
+2. Extract the zip and navigate to the "app" directory.
+3. If a "code" folder exists, overwrite its contents with the "code" folder from the zip file. If it does not exist, simply place the new "code" folder in app directory.
+4. Execute the following commands in your Magento root folder to enable the Cashfree module:
 
-### Install through "code-2.3.x.zip" file
-
-Extract the attached code-2.3.x.zip from release
-
-Go to "app" folder
-
-Overwrite content of "code" folder with step one "code" folder (Note: if code folder not exist just place the code folder from step-1).
-
-Run from magento root folder.
-
-```
+```bash
 bin/magento module:enable Cashfree_Cfcheckout
 bin/magento setup:upgrade
 ```
 
-You can check if the module has been installed using `bin/magento module:status`
+Check if the module is installed with:
 
-You should be able to see `Cashfree_Cfcheckout` in the module list
+```bash
+bin/magento module:status
+```
 
-### Configuration
+`Cashfree_Cfcheckout` should appear in your module list.
 
-Go to Admin -> Stores -> Configuration -> Sales -> Payment Method -> Cashfree to configure Cashfree
+## Configuration
 
-Please try clearing your Magento Cache from your admin panel (System -> Cache Management) if you are experiencing any issues.
+Configure the Cashfree payment method in your Magento Admin:
 
-### Note:
-- Refer [master](https://github.com/cashfree/cashfree-magento) for magento 2.3.x and latest version.
-- For Magento 2.2.x and lower version, please download [magento-2.2.x](https://github.com/cashfree/cashfree-magento/tree/magento-2.2.x) branch
+- Navigate to **Admin** -> **Stores** -> **Configuration** -> **Sales** -> **Payment Method** -> **Cashfree**.
 
+Try clearing your Magento Cache from your admin panel if you experienc any issues:
 
-## Getting help
+- Go to **System** -> **Cache Management** in the admin panel. 
 
-If you have questions, concerns, bug reports, etc, you can reach out to us using one of the following
+## Version Compatibility
 
-1. File an issue in this repository's Issue Tracker.
-2. Send a message in our discord channel. Join our [discord server](https://discord.gg/znT6X45qDS) to get connected instantly.
-3. Send an email to care@cashfree.com
+- For Magento version 2.3.x or above, refer to the [master branch](https://github.com/cashfree/cashfree-magento).
+- For Magento version 2.2.x and earlier, download from the [magento-2.2.x branch](https://github.com/cashfree/cashfree-magento/tree/magento-2.2.x).
 
-## Getting involved
+## Getting Help
 
-For general instructions on _how_ to contribute please refer to [CONTRIBUTING](CONTRIBUTING.md).
+If you encounter issues or have questions, feel free to reach out:
 
+1. Submit an issue to our [GitHub Issue Tracker](https://github.com/cashfree/cashfree-magento/issues).
+2. Send a message on our [Discord server](https://discord.gg/znT6X45qDS).
+3. Email us at care@cashfree.com.
 
-----
+## Contributing
 
-## Open source licensing and other misc info
-1. [LICENSE](https://github.com/cashfree/cashfree-magento/blob/master/LICENSE.md)
-2. [CODE OF CONDUCT](https://github.com/cashfree/cashfree-magento/blob/master/CODE_OF_CONDUCT.md)
+Want to contribute? Check out our [CONTRIBUTING](CONTRIBUTING.md) guidelines.
+
+## Additional Information
+
+- [Open Source License](LICENSE.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
