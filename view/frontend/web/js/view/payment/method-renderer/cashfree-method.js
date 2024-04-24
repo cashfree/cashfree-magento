@@ -170,7 +170,7 @@ define(
                 $.getScript('https://sdk.cashfree.com/js/v3/cashfree.js', function() {
                     // This function will be executed once the script is loaded and executed.
                     const cashfree = Cashfree({
-                        mode: "sandbox",
+                        mode: cfResponse.environment,
                     });
 
                     cashfree.checkout({
